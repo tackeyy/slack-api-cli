@@ -1,8 +1,8 @@
 import { WorkspaceRegistryError } from "./errors.js";
-import { decodeWorkspaceRegistry, normalizeWorkspaceDomain } from "./schema.js";
+import { decodeWorkspaceRegistry, normalizeWorkspaceDomain, validateWorkspaceProfile } from "./schema.js";
 import type { WorkspaceStore } from "./store.js";
 import type { WorkspaceView } from "../domain/workspace.js";
-import type { WorkspaceRecord, WorkspaceRegistryDocument } from "./types.js";
+import type { WorkspaceCredentialRefs, WorkspaceRecord, WorkspaceRegistryDocument } from "./types.js";
 
 export class WorkspaceRegistry {
   readonly #store: WorkspaceStore;
@@ -19,10 +19,42 @@ export class WorkspaceRegistry {
     }));
   }
 
-  async resolve(selector?: string): Promise<WorkspaceView> {
+  async resolve(selector?: string, profile?: string): Promise<WorkspaceView> {
     const document = await this.#read();
     const workspace = resolveRecord(document, selector);
-    return { ...workspace, isDefault: workspace.teamId === document.defaultTeamId };
+    const view = { ...workspace, isDefault: workspace.teamId === document.defaultTeamId };
+    if (profile === undefined) return view;
+    validateWorkspaceProfile(profile);
+    const selected = workspace.profiles?.find((item) => item.name === profile);
+    if (!selected) throw new WorkspaceRegistryError("WORKSPACE_NOT_FOUND", "Workspace profile not found");
+    return { ...view, profile, credentialRefs: selected.credentialRefs };
+  }
+
+  async listProfiles(selector: string): Promise<NonNullable<WorkspaceRecord["profiles"]>> {
+    return (await this.resolve(selector)).profiles ?? [];
+  }
+
+  async addProfile(selector: string, name: string, credentialRefs: WorkspaceCredentialRefs): Promise<WorkspaceView> {
+    validateWorkspaceProfile(name);
+    await this.#mutate((document) => {
+      const workspace = resolveRecord(document, selector);
+      workspace.profiles = [...(workspace.profiles ?? []), { name, credentialRefs }];
+      return document;
+    });
+    return this.resolve(selector);
+  }
+
+  async removeProfile(selector: string, name: string): Promise<WorkspaceView> {
+    validateWorkspaceProfile(name);
+    await this.#mutate((document) => {
+      const workspace = resolveRecord(document, selector);
+      if (!workspace.profiles?.some((item) => item.name === name)) {
+        throw new WorkspaceRegistryError("WORKSPACE_NOT_FOUND", "Workspace profile not found");
+      }
+      workspace.profiles = workspace.profiles.filter((item) => item.name !== name);
+      return document;
+    });
+    return this.resolve(selector);
   }
 
   async add(record: WorkspaceRecord, options: { makeDefault?: boolean } = {}): Promise<WorkspaceView> {

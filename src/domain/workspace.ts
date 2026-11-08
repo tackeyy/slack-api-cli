@@ -21,6 +21,7 @@ export type WorkspaceRecord = {
   previousDomains: string[];
   displayName: string;
   credentialRefs?: WorkspaceCredentialRefs;
+  profiles?: { name: string; credentialRefs: WorkspaceCredentialRefs }[];
 };
 
-export type WorkspaceView = WorkspaceRecord & { isDefault: boolean };
+export type WorkspaceView = WorkspaceRecord & { isDefault: boolean; profile?: string };

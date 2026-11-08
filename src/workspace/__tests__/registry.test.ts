@@ -64,6 +64,20 @@ const primary = {
 };
 
 describe("WorkspaceRegistry", () => {
+  it("adds, selects, lists and removes profiles without merging credentials", async () => {
+    const store = new MemoryStore();
+    const registry = new WorkspaceRegistry(store);
+    await registry.add({ ...primary, credentialRefs: { user: { provider: "environment", name: "BASE" } } });
+    const refs = { bot: { provider: "environment", name: "APP_B" } };
+    await registry.addProfile("primary", "b", refs);
+    expect(await registry.listProfiles("primary")).toEqual([{ name: "b", credentialRefs: refs }]);
+    expect(await registry.resolve("primary", "b")).toMatchObject({ profile: "b", credentialRefs: refs });
+    await expect(registry.addProfile("primary", "b", refs)).rejects.toThrow();
+    await expect(registry.resolve("primary", "missing")).rejects.toThrow();
+    await registry.removeProfile("primary", "b");
+    expect((await registry.resolve("primary")).profiles).toBeUndefined();
+    await expect(registry.removeProfile("primary", "b")).rejects.toThrow();
+  });
   it("mutates and resolves workspaces by Team ID, alias, domain history, and default", async () => {
     const store = new MemoryStore();
     const registry = new WorkspaceRegistry(store);
