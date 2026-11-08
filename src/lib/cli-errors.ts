@@ -40,15 +40,15 @@ export function buildAuthGuidanceMessage(options: BuildAuthGuidanceOptions): str
     // 登録済み workspace がある場合: auth session start を前面に出す
     lines.push("Recommended: start an auth session for a registered workspace:");
     for (const alias of workspaceAliases) {
-      lines.push(`  op read 'op://<vault>/<item>/<field>' | slamy --workspace ${alias} auth session start`);
+      lines.push(`  op read 'op://<vault>/<item>/<field>' | slack-api-cli --workspace ${alias} auth session start`);
     }
   } else {
     // 未登録の場合: workspace add → auth session start の順で案内
     lines.push("Recommended authentication flow:");
     lines.push("  1. Register a workspace:");
-    lines.push("       slamy workspace add --team-id <id> --alias <alias> --domain <domain>.slack.com --name \"Name\"");
+    lines.push("       slack-api-cli workspace add --team-id <id> --alias <alias> --domain <domain>.slack.com --name \"Name\"");
     lines.push("  2. Start an auth session via stdin from your password manager:");
-    lines.push("       op read 'op://<vault>/<item>/<field>' | slamy --workspace <alias> auth session start");
+    lines.push("       op read 'op://<vault>/<item>/<field>' | slack-api-cli --workspace <alias> auth session start");
   }
 
   lines.push("");
@@ -57,7 +57,7 @@ export function buildAuthGuidanceMessage(options: BuildAuthGuidanceOptions): str
   if (workspaceAliases.length > 0) {
     lines.push(`  workspace registry: registered (${workspaceAliases.join(", ")})`);
   } else {
-    lines.push("  workspace registry: not registered (run `slamy workspace list` to check)");
+    lines.push("  workspace registry: not registered (run `slack-api-cli workspace list` to check)");
   }
 
   const userStatus = hasLegacyUserToken ? "set (deprecated)" : "not set";

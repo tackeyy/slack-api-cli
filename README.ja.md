@@ -44,6 +44,8 @@ component/data-flow図、import規則、公開API互換方針、Go削除gateは
 
 ### TypeScript API / CLI（ソースから実行）
 
+コマンド名は`slack-api-cli`です。`slamy`も別名として使えます。この文書の例は`slamy`で書いています。
+
 slamy は npm へ公開していません。リポジトリを clone し、CLI をソースから実行します（Node.js 25 以上）。
 
 ```bash

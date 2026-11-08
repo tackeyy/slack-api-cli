@@ -62,6 +62,8 @@ diagrams, import rules, public API compatibility policy, and Go removal gates.
 
 ### TypeScript API and CLI (from source)
 
+The command is `slack-api-cli`. `slamy` remains available as an alias, and the examples in this document use it.
+
 slamy is not published to npm. Clone the repository and run the CLI from source
 (Node.js 25 or later):
 

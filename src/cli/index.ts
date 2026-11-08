@@ -26,7 +26,7 @@ const pkg = JSON.parse(
 const program = new Command();
 
 program
-  .name("slamy")
+  .name("slack-api-cli")
   .description("Slack CLI tool")
   .version(pkg.version)
   .option(
