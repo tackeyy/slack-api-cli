@@ -1,3 +1,5 @@
+import { resolveCliWorkspaceSelector } from "./api-client.js";
+import { validateWorkspaceProfile } from "../lib/local-session-files.js";
 import type { Command } from "commander";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -61,7 +63,7 @@ export function registerLocalSessionCommands(
     .option("--foreground", "Keep the broker in the current process for a supervisor")
     .action(async (options: { ttl?: string; foreground?: boolean }) => {
       await withErrors(deps, async () => {
-        const workspace = await deps.registryFactory().resolve(selectedWorkspace(program));
+        const workspace = await resolveSessionWorkspace(program, deps);
         const ttlMs = parseLocalSessionTtl(options.ttl);
         const starter = options.foreground ? deps.startForeground : deps.start;
         const result = await starter({
@@ -87,7 +89,7 @@ export function registerLocalSessionCommands(
     .description("Show non-secret local session status")
     .action(async () => {
       await withErrors(deps, async () => {
-        const workspace = await deps.registryFactory().resolve(selectedWorkspace(program));
+        const workspace = await resolveSessionWorkspace(program, deps);
         const result = await deps.status(workspace, configHome(deps.env));
         if (!result) {
           deps.writeOut(outputMode(program) === "json" ? JSON.stringify({ active: false }) : "No active local session");
@@ -102,7 +104,7 @@ export function registerLocalSessionCommands(
     .description("Revoke the local session without rotating the Slack token")
     .action(async () => {
       await withErrors(deps, async () => {
-        const workspace = await deps.registryFactory().resolve(selectedWorkspace(program));
+        const workspace = await resolveSessionWorkspace(program, deps);
         const revoked = await deps.revoke(workspace, configHome(deps.env));
         const mode = outputMode(program);
         deps.writeOut(
@@ -155,9 +157,9 @@ function formatStatus(
 ): string {
   if (mode === "json") return JSON.stringify({ active: true, ...status });
   if (mode === "plain") {
-    return `${status.workspace}\t${status.teamId}\t${status.credentialKind}\t${status.createdAt}\t${status.expiresAt}`;
+    return `${status.workspace}\t${status.teamId}\t${status.credentialKind}\t${status.createdAt}\t${status.expiresAt}${status.profile === undefined ? "" : `\t${status.profile}`}`;
   }
-  return `Local session ${state} for ${status.workspace} (${status.teamId}); expires ${status.expiresAt}`;
+  return `Local session ${state} for ${status.workspace}${status.profile === undefined ? "" : ` profile ${status.profile}`} (${status.teamId}); expires ${status.expiresAt}`;
 }
 
 async function withErrors(
@@ -172,4 +174,11 @@ async function withErrors(
     );
     process.exitCode = 1;
   }
+}
+
+async function resolveSessionWorkspace(program: Command, deps: SessionCommandDependencies) {
+  const profile = program.opts<{ profile?: string }>().profile;
+  if (profile === undefined) return deps.registryFactory().resolve(selectedWorkspace(program));
+  validateWorkspaceProfile(profile);
+  return deps.registryFactory().resolve(resolveCliWorkspaceSelector(selectedWorkspace(program), deps.env), profile);
 }

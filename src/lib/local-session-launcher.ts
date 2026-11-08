@@ -16,6 +16,7 @@ export async function launchLocalSessionDaemon(
     /** 親プロセスの `process.execArgv`。tsx などのローダー指定だけを daemon へ引き継ぐ。 */
     readonly execArgv?: readonly string[];
     readonly token: string;
+    readonly profile?: string;
     readonly configHome: string;
     readonly connection: LocalSessionConnection;
   },
@@ -39,6 +40,7 @@ export async function launchLocalSessionDaemon(
   child.stdin.end(
     `${JSON.stringify({
       version: 1,
+      ...(input.profile === undefined ? {} : { profile: input.profile }),
       token: input.token,
       configHome: input.configHome,
       connection: input.connection,

@@ -19,6 +19,7 @@ import type { LocalSessionConnection } from "./local-session-web-client.js";
 
 export type LocalSessionStatus = {
   readonly workspace: string;
+  readonly profile?: string;
   readonly teamId: string;
   readonly credentialKind: CredentialKind;
   readonly createdAt: string;
@@ -52,7 +53,7 @@ const defaultForegroundDependencies: ForegroundDependencies = {
 
 export async function startLocalSession(
   input: {
-    readonly workspace: WorkspaceRecord;
+    readonly workspace: WorkspaceRecord & { profile?: string };
     readonly token: string;
     readonly ttlMs: number;
     readonly configHome: string;
@@ -94,6 +95,7 @@ export async function startLocalSession(
   const paths = resolveLocalSessionPaths({
     configHome: input.configHome,
     teamId: input.workspace.teamId,
+    profile: input.workspace.profile,
     credentialKind,
   });
   if (await readLocalSessionConnection(paths, now)) {
@@ -109,6 +111,7 @@ export async function startLocalSession(
     expiresAt: new Date(now.getTime() + input.ttlMs).toISOString(),
   });
   await dependencies.launch({
+    ...(input.workspace.profile === undefined ? {} : { profile: input.workspace.profile }),
     cliPath: input.cliPath,
     executablePath: input.executablePath,
     ...(input.execArgv ? { execArgv: input.execArgv } : {}),
@@ -129,6 +132,7 @@ export async function startLocalSessionForeground(
     capability: dependencies.capability,
     launch: async (launchInput) => {
       await dependencies.runDaemon({
+        ...(launchInput.profile === undefined ? {} : { profile: launchInput.profile }),
         token: launchInput.token,
         configHome: launchInput.configHome,
         connection: launchInput.connection,
@@ -139,13 +143,14 @@ export async function startLocalSessionForeground(
 }
 
 export async function getLocalSessionStatus(
-  workspace: WorkspaceRecord,
+  workspace: WorkspaceRecord & { profile?: string },
   configHome: string,
   now = new Date(),
 ): Promise<LocalSessionStatus | undefined> {
   const paths = resolveLocalSessionPaths({
     configHome,
     teamId: workspace.teamId,
+    profile: workspace.profile,
     credentialKind: requiredCredentialKind(workspace),
   });
   const connection = await readLocalSessionConnection(paths, now);
@@ -153,13 +158,14 @@ export async function getLocalSessionStatus(
 }
 
 export async function revokeLocalSession(
-  workspace: WorkspaceRecord,
+  workspace: WorkspaceRecord & { profile?: string },
   configHome: string,
   now = new Date(),
 ): Promise<boolean> {
   const paths = resolveLocalSessionPaths({
     configHome,
     teamId: workspace.teamId,
+    profile: workspace.profile,
     credentialKind: requiredCredentialKind(workspace),
   });
   const connection = await readLocalSessionConnection(paths, now);
@@ -169,11 +175,12 @@ export async function revokeLocalSession(
 }
 
 export function publicStatus(
-  workspace: WorkspaceRecord,
+  workspace: WorkspaceRecord & { profile?: string },
   connection: LocalSessionConnection,
 ): LocalSessionStatus {
   return Object.freeze({
     workspace: workspace.alias,
+    ...(workspace.profile === undefined ? {} : { profile: workspace.profile }),
     teamId: connection.teamId,
     credentialKind: connection.credentialKind,
     createdAt: connection.createdAt,
@@ -181,7 +188,7 @@ export function publicStatus(
   });
 }
 
-function requiredCredentialKind(workspace: WorkspaceRecord): CredentialKind {
+function requiredCredentialKind(workspace: WorkspaceRecord & { profile?: string }): CredentialKind {
   if (workspace.credentialRefs?.user && workspace.credentialRefs.bot) {
     throw new Error("Local sessions require a workspace with exactly one credential kind");
   }
