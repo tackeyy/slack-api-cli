@@ -24,7 +24,7 @@ body:
       label: Proposed solution
       description: How would you like this feature to work?
       placeholder: |
-        Add a new command `slamy export` that allows users to...
+        Add a new command `slack-api-cli export` that allows users to...
     validations:
       required: true
 

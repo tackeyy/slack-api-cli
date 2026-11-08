@@ -54,7 +54,7 @@ new registry version.
 2. Add the workspace record while referencing the existing environment-variable name:
 
    ```bash
-   slamy workspace add \
+   slack-api-cli workspace add \
      --team-id T01234567 \
      --alias primary \
      --domain primary.slack.com \
@@ -63,7 +63,7 @@ new registry version.
      --default
    ```
 
-3. Inspect the record with `slamy workspace show primary` and `slamy workspace list --json`.
+3. Inspect the record with `slack-api-cli workspace show primary` and `slack-api-cli workspace list --json`.
 4. Keep the referenced environment variable protected and available. The registry contains its
    name, not its value.
 5. Use the Issue #86 library resolver to verify every configured token against the record's Team ID.
