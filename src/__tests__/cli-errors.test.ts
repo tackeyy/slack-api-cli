@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Mock } from "vitest";
+import { readFileSync } from "node:fs";
 import { handleCliError, requireToken, buildAuthGuidanceMessage } from "../lib/cli-errors.js";
 import type { ExitFn, LogFn } from "../lib/cli-errors.js";
 
@@ -173,5 +174,34 @@ describe("buildAuthGuidanceMessage", () => {
     const workspaceAddIdx = msgWithAliases.indexOf("workspace add");
     // session start の案内が workspace add より先、または workspace add が省略される
     expect(sessionStartIdx).toBeLessThan(workspaceAddIdx === -1 ? Infinity : workspaceAddIdx);
+  });
+});
+
+describe("command name", () => {
+  const root = new URL("../../", import.meta.url);
+  const readText = (path: string) => readFileSync(new URL(path, root), "utf8");
+
+  it("installs slack-api-cli and keeps slamy as an alias", () => {
+    const pkg = JSON.parse(readText("package.json"));
+    const lockRoot = JSON.parse(readText("package-lock.json")).packages[""];
+    const expected = { "slack-api-cli": "dist/cli/index.js", slamy: "dist/cli/index.js" };
+    expect(pkg.bin).toEqual(expected);
+    expect(lockRoot.bin).toEqual(expected);
+  });
+
+  it("shows slack-api-cli as the program name", () => {
+    expect(readText("src/cli/index.ts")).toContain('.name("slack-api-cli")');
+  });
+
+  it("uses slack-api-cli in the authentication guidance", () => {
+    const message = buildAuthGuidanceMessage({
+      workspaceAliases: [],
+      hasLegacyUserToken: false,
+      hasLegacyBotToken: false,
+    });
+    expect(message).toContain("slack-api-cli workspace add");
+    expect(message).toContain("slack-api-cli --workspace <alias> auth session start");
+    expect(message).toContain("`slack-api-cli workspace list`");
+    expect(message).not.toContain("slamy");
   });
 });
