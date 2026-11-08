@@ -12,7 +12,7 @@ We release security patches for the following versions:
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Use [GitHub Private Vulnerability Reporting](https://github.com/tackeyy/slamy/security/advisories/new)
+Use [GitHub Private Vulnerability Reporting](https://github.com/tackeyy/slack-api-cli/security/advisories/new)
 to report a vulnerability privately.
 
 Please include the following information:

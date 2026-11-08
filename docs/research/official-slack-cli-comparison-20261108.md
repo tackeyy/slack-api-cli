@@ -4,7 +4,8 @@
 
 - **Slackの公式CLIは存在する。** [slackapi/slack-cli](https://github.com/slackapi/slack-cli)で、コマンド名は`slack`。
 - **v4.1.0（2026-05-19）で`slack api`が加わり、任意のAPIメソッドを呼べる。** ただしAPIを直接呼ぶ入口であり、slamyが担う運用機能の代わりにはならない。
-- **`slack-cli`への改名は勧めない。** 公式のrepo名と同じになり、どちらを指すか区別できなくなる。
+- **`slack-cli`という名前は採らない。** 公式のrepo名と同じになり、どちらを指すか区別できなくなる。
+- **2026-11-08に、repo名を`tackeyy/slack-api-cli`へ変更した。** コマンド名`slamy`、環境変数、設定の保存先は変えていない。
 - 単発のAPI呼び出しには`slack api`を併用できる。
 
 ## 公式CLIの基本情報
@@ -43,12 +44,21 @@
 - `--token`はargvへトークンを渡す形になる。トークンをargvに置かない運用では、環境変数で渡す。
 - `search.messages`は文書で「legacy method」とされ、`assistant.search.context`が推奨されている。停止日の記載は無い。**これは公式CLIとは別の話で、`slamy search messages`にも関わる。**
 
-## `slack-cli`へ改名する場合の費用
+## 命名規則
 
-- 公式のrepoと同じ名前になる。`tackeyy/slack-cli`自体は2026-11-08時点で未使用。
+自作CLIのrepo名は次のとおりとする。
+
+- 公式CLIがない: `<サービス>-cli`
+- 公式CLIがあり、特定の機能だけを扱う: `<サービス>-<機能>-cli`
+- 公式CLIがあり、APIを幅広く扱う: `<サービス>-api-cli`
+
+slamyはAPIを幅広く扱うので`slack-api-cli`とした。
+
+## コマンド名まで変える場合の費用
+
 - 名前で分岐する箇所が複数のrepoにある。起動ラッパー、権限の許可リスト、直接APIを止めるhook、スキル、規約。
 - 別のrepoには、commit SHAを固定してコンテナへ組み込み、更新PRを自動で作る構成がある。そこのテストと手順書も直す必要がある。
-- GitHubのrepo改名は旧URLへ転送されるが、コマンド名は転送されない。
+- GitHubのrepo改名では旧URLが転送される。`git ls-remote`、`git clone`、`gh api`で実測した。コマンド名は転送されない。
 
 ## 実測の範囲
 
