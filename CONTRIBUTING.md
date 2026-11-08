@@ -268,7 +268,7 @@ Reviewers will check:
 
 ## 🙌 Recognition
 
-All contributors are recognized on the [GitHub Contributors page](https://github.com/tackeyy/slamy/graphs/contributors) and in release notes for significant contributions.
+All contributors are recognized on the [GitHub Contributors page](https://github.com/tackeyy/slack-api-cli/graphs/contributors) and in release notes for significant contributions.
 
 ---
 

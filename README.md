@@ -66,8 +66,8 @@ slamy is not published to npm. Clone the repository and run the CLI from source
 (Node.js 25 or later):
 
 ```bash
-git clone https://github.com/tackeyy/slamy.git
-cd slamy
+git clone https://github.com/tackeyy/slack-api-cli.git
+cd slack-api-cli
 npm install
 npx tsx src/cli/index.ts --help
 ```
@@ -87,8 +87,8 @@ go install github.com/tackeyy/slamy@latest
 ### Build the Go CLI from source
 
 ```bash
-git clone https://github.com/tackeyy/slamy.git
-cd slamy/go-src
+git clone https://github.com/tackeyy/slack-api-cli.git
+cd slack-api-cli/go-src
 go build -o ../slamy .
 ```
 
@@ -695,5 +695,5 @@ MIT
 
 ## Links
 
-- [GitHub Repository](https://github.com/tackeyy/slamy)
+- [GitHub Repository](https://github.com/tackeyy/slack-api-cli)
 - [Slack API Documentation](https://api.slack.com/docs)

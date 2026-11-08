@@ -47,8 +47,8 @@ component/data-flow図、import規則、公開API互換方針、Go削除gateは
 slamy は npm へ公開していません。リポジトリを clone し、CLI をソースから実行します（Node.js 25 以上）。
 
 ```bash
-git clone https://github.com/tackeyy/slamy.git
-cd slamy
+git clone https://github.com/tackeyy/slack-api-cli.git
+cd slack-api-cli
 npm install
 npx tsx src/cli/index.ts --help
 ```
@@ -68,8 +68,8 @@ go install github.com/tackeyy/slamy@latest
 ### ソースから Go CLI をビルド
 
 ```bash
-git clone https://github.com/tackeyy/slamy.git
-cd slamy/go-src
+git clone https://github.com/tackeyy/slack-api-cli.git
+cd slack-api-cli/go-src
 go build -o ../slamy .
 ```
 
@@ -609,5 +609,5 @@ MIT
 
 ## リンク
 
-- [GitHub リポジトリ](https://github.com/tackeyy/slamy)
+- [GitHub リポジトリ](https://github.com/tackeyy/slack-api-cli)
 - [Slack API ドキュメント](https://api.slack.com/docs)
