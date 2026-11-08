@@ -7,6 +7,14 @@ import {
 } from "../schema.js";
 
 describe("decodeWorkspaceRegistry", () => {
+  it("round trips named profiles and omits an empty profiles array", () => {
+    const base = { teamId: "T00000001", alias: "primary", domain: "primary.slack.com",
+      previousDomains: [], displayName: "Primary" };
+    const profiles = [{ name: "a", credentialRefs: { user: { provider: "environment", name: "APP_A" } } }];
+    const decoded = decodeWorkspaceRegistry({ version: 1, workspaces: [{ ...base, profiles }] });
+    expect(parseWorkspaceRegistryJson(serializeWorkspaceRegistry(decoded)).workspaces[0]).toEqual({ ...base, profiles });
+    expect(decodeWorkspaceRegistry({ version: 1, workspaces: [{ ...base, profiles: [] }] }).workspaces[0]).toEqual(base);
+  });
   it("accepts a version 1 document with Team ID as the canonical identity", () => {
     const document = decodeWorkspaceRegistry({
       version: 1,
@@ -60,7 +68,16 @@ describe("decodeWorkspaceRegistry", () => {
       previousDomains: ["old-primary.slack.com"],
       displayName: "Primary",
     };
+    const profile = { name: "a", credentialRefs: { user: { provider: "environment", name: "APP_A" } } };
     const unsafeDocuments: unknown[] = [
+      ...["default", "", "A", "a_b", "../a", "a".repeat(33)].map((name) => ({
+        version: 1, workspaces: [{ ...workspace, profiles: [{ ...profile, name }] }],
+      })),
+      ...[null, {}, [profile, profile], [{ ...profile, unknown: true }],
+        [{ name: "a", credentialRefs: {} }],
+        [{ name: "a", credentialRefs: { user: { provider: "keychain", name: "item" } } }],
+        [{ name: "a", credentialRefs: { user: { provider: "environment", name: "xoxp-profile-canary" } } }],
+      ].map((profiles) => ({ version: 1, workspaces: [{ ...workspace, profiles }] })),
       { version: 2, workspaces: [] },
       { version: 1, workspaces: [], unknown: true },
       { version: 1, workspaces: [{ ...workspace, unknown: true }] },

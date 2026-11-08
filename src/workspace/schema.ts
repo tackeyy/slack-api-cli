@@ -83,7 +83,7 @@ function decodeWorkspace(value: unknown): WorkspaceRecord {
   const input = asObject(value, "workspace record");
   assertExactKeys(
     input,
-    ["teamId", "alias", "domain", "previousDomains", "displayName", "credentialRefs"],
+    ["teamId", "alias", "domain", "previousDomains", "displayName", "credentialRefs", "profiles"],
     "workspace record",
   );
   if (!Array.isArray(input.previousDomains)) {
@@ -104,7 +104,9 @@ function decodeWorkspace(value: unknown): WorkspaceRecord {
     throw new WorkspaceRegistryError("DUPLICATE_DOMAIN", "Workspace domains must be unique");
   }
 
+  const profiles = decodeProfiles(input.profiles);
   return {
+    ...(profiles.length ? { profiles } : {}),
     teamId: safeTeamId(input.teamId),
     alias: validateWorkspaceAlias(input.alias),
     domain,
@@ -195,4 +197,30 @@ function assertExactKeys(
 
 function invalid(message: string): WorkspaceRegistryError {
   return new WorkspaceRegistryError("INVALID_CONFIG", message);
+}
+
+export function validateWorkspaceProfile(value: unknown): string {
+  if (typeof value !== "string" || value.length < 1 || value.length > 32 ||
+      !ALIAS_PATTERN.test(value) || value === "default" || looksLikeSlackSecret(value)) {
+    throw invalid("Workspace profile name is invalid");
+  }
+  return value;
+}
+
+function decodeProfiles(value: unknown): NonNullable<WorkspaceRecord["profiles"]> {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw invalid("Workspace profiles must be an array");
+  const profiles = value.map((item) => {
+    const input = asObject(item, "workspace profile");
+    assertExactKeys(input, ["name", "credentialRefs"], "workspace profile");
+    const credentialRefs = decodeCredentialRefs(input.credentialRefs);
+    if (Object.values(credentialRefs).some((ref) => ref.provider !== "environment")) {
+      throw invalid("Workspace profiles require environment references");
+    }
+    return { name: validateWorkspaceProfile(input.name), credentialRefs };
+  });
+  if (new Set(profiles.map((profile) => profile.name)).size !== profiles.length) {
+    throw invalid("Workspace profile names must be unique");
+  }
+  return profiles;
 }

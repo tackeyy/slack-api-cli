@@ -1,3 +1,4 @@
+import { validateWorkspaceProfile } from "../lib/local-session-files.js";
 import {
   createTargetResolver,
   createWorkspaceRegistry,
@@ -23,6 +24,7 @@ export type CliTargetClient<Client> = CliApiClientLease<Client> & {
 export type CliClientLeaseFactory<Client> = (
   workspaceSelector: string | undefined,
   registry: WorkspaceRegistry | undefined,
+  profile?: string,
 ) => Promise<CliApiClientLease<Client>>;
 
 export type CreateCliTargetClientOptions<Client> = {
@@ -30,6 +32,7 @@ export type CreateCliTargetClientOptions<Client> = {
   messageTs?: string;
   threadTs?: string;
   explicitWorkspace?: string;
+  profile?: string;
   env?: NodeJS.ProcessEnv;
   registry?: WorkspaceRegistry;
   clientLeaseFactory?: CliClientLeaseFactory<Client>;
@@ -38,6 +41,7 @@ export type CreateCliTargetClientOptions<Client> = {
 export async function createCliTargetClient<Client>(
   options: CreateCliTargetClientOptions<Client>,
 ): Promise<CliTargetClient<Client>> {
+  if (options.profile !== undefined) validateWorkspaceProfile(options.profile);
   const env = options.env ?? process.env;
   const selectedWorkspace = resolveCliWorkspaceSelector(
     options.explicitWorkspace,
@@ -48,11 +52,12 @@ export async function createCliTargetClient<Client>(
     ((workspaceSelector: string | undefined, registry: WorkspaceRegistry | undefined) =>
       createCliApiClient({
         explicitWorkspace: workspaceSelector,
+        profile: options.profile,
         env,
         ...(registry ? { registry } : {}),
       }) as Promise<CliApiClientLease<Client>>);
 
-  if (selectedWorkspace === undefined && !isUrlInput(options.input)) {
+  if (options.profile === undefined && selectedWorkspace === undefined && !isUrlInput(options.input)) {
     const lease = await clientLeaseFactory(undefined, undefined);
     return {
       ...lease,
@@ -71,7 +76,10 @@ export async function createCliTargetClient<Client>(
       ? { explicitWorkspace: selectedWorkspace }
       : {}),
   });
-  const lease = await clientLeaseFactory(resolved.workspaceAlias, registry);
+  if (options.profile !== undefined) await registry.resolve(resolved.workspaceAlias, options.profile);
+  const lease = options.profile === undefined
+    ? await clientLeaseFactory(resolved.workspaceAlias, registry)
+    : await clientLeaseFactory(resolved.workspaceAlias, registry, options.profile);
 
   return {
     ...lease,

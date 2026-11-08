@@ -8,6 +8,7 @@ import {
   findLocalSessionForWorkspace,
   prepareLocalSessionPaths,
   readLocalSessionConnection,
+  resolveLocalSessionPaths,
   writeLocalSessionConnection,
 } from "../local-session-files.js";
 
@@ -24,6 +25,21 @@ afterEach(async () => {
 });
 
 describe("local session files", () => {
+  it("isolates named profile paths while preserving the unnamed paths", async () => {
+    const root = await mkdtemp(join(tmpdir(), "sp-"));
+    tempPaths.push(root);
+    const input = { configHome: root, runtimeRoot: join(root, "run"), teamId: "TPROFILE1", credentialKind: "user" as const };
+    const base = resolveLocalSessionPaths(input);
+    const a = await prepareLocalSessionPaths({ ...input, profile: "a" });
+    const b = resolveLocalSessionPaths({ ...input, credentialKind: "bot", profile: "b" });
+    expect(base.sessionDirectory).toBe(join(root, "slamy/sessions/TPROFILE1/user"));
+    expect(a.sessionDirectory).toBe(join(root, "slamy/sessions/TPROFILE1/profiles/a/user"));
+    expect(a.socketPath).toBe(join(root, "run/TPROFILE1-user-a.sock"));
+    expect(new Set([base.socketPath, a.socketPath, b.socketPath]).size).toBe(3);
+    for (const profile of ["default", "../a", "", "A", "a".repeat(33)]) {
+      expect(() => resolveLocalSessionPaths({ ...input, profile })).toThrow();
+    }
+  });
   it("creates owner-only directories and metadata without a Slack token", async () => {
     const root = await mkdtemp(join(tmpdir(), "slamy-session-files-"));
     tempPaths.push(root);

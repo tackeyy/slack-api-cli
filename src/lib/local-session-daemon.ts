@@ -4,7 +4,7 @@ import type { CredentialKind } from "../credentials/types.js";
 import { parseTeamId } from "../domain/team-id.js";
 import { SlackAuthTestVerifier } from "../slack/auth-test-verifier.js";
 import { invokeSlackWebApi, startLocalSessionBroker } from "./local-session-broker.js";
-import { prepareLocalSessionPaths } from "./local-session-files.js";
+import { prepareLocalSessionPaths, validateWorkspaceProfile } from "./local-session-files.js";
 import type { LocalSessionConnection } from "./local-session-web-client.js";
 
 const MAX_BOOTSTRAP_BYTES = 64 * 1024;
@@ -16,9 +16,11 @@ export async function runLocalSessionDaemonFromStdin(): Promise<void> {
 
 export async function runLocalSessionDaemon(bootstrap: {
   readonly token: string;
+  readonly profile?: string;
   readonly configHome: string;
   readonly connection: LocalSessionConnection;
 }): Promise<void> {
+  const profile = bootstrap.profile === undefined ? undefined : validateWorkspaceProfile(bootstrap.profile);
   if (bootstrap.token.startsWith("xoxe.")) {
     throw new Error("Enterprise org tokens are not supported by local sessions");
   }
@@ -39,6 +41,7 @@ export async function runLocalSessionDaemon(bootstrap: {
   }
   const paths = await prepareLocalSessionPaths({
     configHome: bootstrap.configHome,
+    ...(profile === undefined ? {} : { profile }),
     teamId: bootstrap.connection.teamId,
     credentialKind: bootstrap.connection.credentialKind,
   });
@@ -52,7 +55,7 @@ export async function runLocalSessionDaemon(bootstrap: {
     invokeSlack: invokeSlackWebApi,
     onRevoked: () => process.exit(0),
   });
-  process.title = `slamy-session:${bootstrap.connection.teamId}:${bootstrap.connection.credentialKind}`;
+  process.title = `slamy-session:${bootstrap.connection.teamId}:${bootstrap.connection.credentialKind}${profile === undefined ? "" : `:${profile}`}`;
   const shutdown = () => void broker.close().finally(() => process.exit(0));
   process.once("SIGTERM", shutdown);
   process.once("SIGINT", shutdown);
@@ -60,6 +63,7 @@ export async function runLocalSessionDaemon(bootstrap: {
 
 function parseBootstrap(value: unknown): {
   readonly token: string;
+  readonly profile?: string;
   readonly configHome: string;
   readonly connection: LocalSessionConnection;
 } {
@@ -69,6 +73,7 @@ function parseBootstrap(value: unknown): {
   if (typeof value.configHome !== "string" || !resolve(value.configHome).startsWith("/")) {
     throw new Error("Invalid local session bootstrap");
   }
+  const profile = value.profile === undefined ? undefined : validateWorkspaceProfile(value.profile);
   const connectionValue = value.connection;
   if (!isRecord(connectionValue)) throw new Error("Invalid local session bootstrap");
   const teamId = parseTeamId(connectionValue.teamId);
@@ -88,6 +93,7 @@ function parseBootstrap(value: unknown): {
   }
   return Object.freeze({
     token: value.token,
+    ...(profile === undefined ? {} : { profile }),
     configHome: resolve(value.configHome),
     connection: Object.freeze({
       version: 1,

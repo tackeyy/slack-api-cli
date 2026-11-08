@@ -31,6 +31,30 @@ export function registerWorkspaceCommands(
     .command("workspace")
     .description("Manage Slack workspace registry entries (offline; does not call Slack)");
 
+  const profile = workspace.command("profile").description("Manage named credential profiles offline");
+  profile.command("add <selector> <name>")
+    .option("--user-token-env <name>", "Environment variable name for the User token")
+    .option("--bot-token-env <name>", "Environment variable name for the Bot token")
+    .action(withErrors(dependencies, async (selector: string, name: string, options: { userTokenEnv?: string; botTokenEnv?: string }) => {
+      const selected = await dependencies.registryFactory().addProfile(selector, name, {
+        ...(options.userTokenEnv === undefined ? {} : { user: { provider: "environment", name: options.userTokenEnv } }),
+        ...(options.botTokenEnv === undefined ? {} : { bot: { provider: "environment", name: options.botTokenEnv } }),
+      });
+      dependencies.writeOut(formatWorkspace(selected, outputMode(program)));
+    }));
+  profile.command("list <selector>")
+    .action(withErrors(dependencies, async (selector: string) => {
+      const profiles = await dependencies.registryFactory().listProfiles(selector);
+      const mode = outputMode(program);
+      dependencies.writeOut(mode === "json" ? JSON.stringify(profiles, null, 2) :
+        profiles.map((item) => item.name).join("\n"));
+    }));
+  profile.command("remove <selector> <name>")
+    .action(withErrors(dependencies, async (selector: string, name: string) => {
+      const selected = await dependencies.registryFactory().removeProfile(selector, name);
+      dependencies.writeOut(formatWorkspace(selected, outputMode(program)));
+    }));
+
   workspace
     .command("list")
     .description("List registered workspaces")

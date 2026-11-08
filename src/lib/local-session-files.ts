@@ -1,3 +1,5 @@
+import { validateWorkspaceProfile } from "../workspace/schema.js";
+export { validateWorkspaceProfile } from "../workspace/schema.js";
 import { randomUUID } from "node:crypto";
 import { lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -22,12 +24,16 @@ export async function prepareLocalSessionPaths(input: {
   readonly runtimeRoot?: string;
   readonly teamId: string;
   readonly credentialKind: CredentialKind;
+  readonly profile?: string;
 }): Promise<LocalSessionPaths> {
   const paths = resolveLocalSessionPaths(input);
   const slamyDirectory = join(input.configHome, "slamy");
   const sessionsDirectory = join(slamyDirectory, "sessions");
   const teamDirectory = join(sessionsDirectory, paths.teamId);
-  for (const directory of [slamyDirectory, sessionsDirectory, teamDirectory, paths.sessionDirectory]) {
+  const profileDirectories = input.profile === undefined ? [] : [
+    join(teamDirectory, "profiles"), join(teamDirectory, "profiles", input.profile),
+  ];
+  for (const directory of [slamyDirectory, sessionsDirectory, teamDirectory, ...profileDirectories, paths.sessionDirectory]) {
     await ensurePrivateDirectory(directory);
   }
   await ensurePrivateDirectory(paths.runtimeDirectory);
@@ -39,13 +45,16 @@ export function resolveLocalSessionPaths(input: {
   readonly runtimeRoot?: string;
   readonly teamId: string;
   readonly credentialKind: CredentialKind;
+  readonly profile?: string;
 }): LocalSessionPaths {
   const teamId = parseTeamId(input.teamId);
   validateCredentialKind(input.credentialKind);
   const slamyDirectory = join(input.configHome, "slamy");
   const sessionsDirectory = join(slamyDirectory, "sessions");
   const teamDirectory = join(sessionsDirectory, teamId);
-  const sessionDirectory = join(teamDirectory, input.credentialKind);
+  const profile = input.profile === undefined ? undefined : validateWorkspaceProfile(input.profile);
+  const sessionDirectory = profile === undefined ? join(teamDirectory, input.credentialKind) :
+    join(teamDirectory, "profiles", profile, input.credentialKind);
   const uid = typeof process.getuid === "function" ? process.getuid() : 0;
   const runtimeDirectory = input.runtimeRoot ?? join("/tmp", `slamy-${uid}`);
   return Object.freeze({
@@ -54,12 +63,12 @@ export function resolveLocalSessionPaths(input: {
     sessionDirectory,
     runtimeDirectory,
     metadataPath: join(sessionDirectory, "session.json"),
-    socketPath: join(runtimeDirectory, `${teamId}-${input.credentialKind}.sock`),
+    socketPath: join(runtimeDirectory, `${teamId}-${input.credentialKind}${profile === undefined ? "" : `-${profile}`}.sock`),
   });
 }
 
 export async function findLocalSessionForWorkspace(
-  workspace: WorkspaceRecord,
+  workspace: WorkspaceRecord & { profile?: string },
   env: NodeJS.ProcessEnv = process.env,
   now = new Date(),
 ): Promise<LocalSessionConnection | undefined> {
@@ -69,6 +78,7 @@ export async function findLocalSessionForWorkspace(
   const paths = resolveLocalSessionPaths({
     configHome,
     teamId: workspace.teamId,
+    profile: workspace.profile,
     credentialKind,
   });
   return readLocalSessionConnection(paths, now);

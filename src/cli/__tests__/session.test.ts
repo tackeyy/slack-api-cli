@@ -1,6 +1,9 @@
+import { formatWorkspace, formatWorkspaceList } from "../../output/workspace.js";
 import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
 import { parseTeamId } from "../../domain/team-id.js";
+import { WorkspaceRegistry } from "../../workspace/registry.js";
+import { registerWorkspaceCommands } from "../workspace.js";
 import { registerLocalSessionCommands } from "../session.js";
 
 const workspace = {
@@ -17,6 +20,7 @@ function commandHarness(
 ) {
   const program = new Command()
     .option("--workspace <selector>")
+    .option("--profile <name>")
     .option("--json")
     .option("--plain");
   const auth = program.command("auth");
@@ -44,9 +48,20 @@ const status = {
 };
 
 describe("local session CLI", () => {
+  it("uses the environment workspace and root profile for session commands and plain output", async () => {
+    const resolve = vi.fn().mockResolvedValue({ ...workspace, profile: "a" });
+    const start = vi.fn().mockResolvedValue({ ...status, profile: "a" });
+    const harness = commandHarness({ registryFactory: () => ({ resolve }) as never,
+      env: { SLAMY_DEFAULT_WORKSPACE: "wedgeai", XDG_CONFIG_HOME: "/private/config" }, start });
+    await harness.program.parseAsync(["node", "slamy", "--profile", "a", "--plain", "auth", "session", "start"]);
+    expect(resolve).toHaveBeenCalledWith("wedgeai", "a");
+    expect(start).toHaveBeenCalledWith(expect.objectContaining({ workspace: expect.objectContaining({ profile: "a" }) }));
+    expect(harness.writeOut).toHaveBeenCalledWith(expect.stringMatching(/\ta$/));
+  });
   it("starts a 7-day session from stdin and emits only public status", async () => {
     const program = new Command()
       .option("--workspace <selector>")
+    .option("--profile <name>")
       .option("--json")
       .option("--plain");
     const auth = program.command("auth");
@@ -177,5 +192,39 @@ describe("local session CLI", () => {
     } finally {
       process.exitCode = previousExitCode;
     }
+  });
+});
+
+describe("offline profile management", () => {
+  it("adds, lists and removes profile references without session operations", async () => {
+    let document = { version: 1 as const, workspaces: [workspace] };
+    const registry = new WorkspaceRegistry({ read: async () => document, write: async () => {},
+      update: async (mutate) => { document = mutate(document) as typeof document; return document; } });
+    const invoke = async (args: string[]) => {
+      const program = new Command().option("--json");
+      const writeOut = vi.fn();
+      const writeErr = vi.fn();
+      registerWorkspaceCommands(program, { registryFactory: () => registry, writeOut, writeErr });
+      await program.parseAsync(["node", "slamy", "--json", "workspace", "profile", ...args]);
+      expect(writeErr).not.toHaveBeenCalled();
+      return writeOut.mock.calls[0]?.[0];
+    };
+    await invoke(["add", "wedgeai", "a", "--user-token-env", "APP_A"]);
+    expect(JSON.parse(await invoke(["list", "wedgeai"]))).toEqual([
+      { name: "a", credentialRefs: { user: { provider: "environment", name: "APP_A" } } },
+    ]);
+    await invoke(["remove", "wedgeai", "a"]);
+    expect(await registry.listProfiles("wedgeai")).toEqual([]);
+  });
+});
+
+describe("workspace profile output", () => {
+  it("adds profile names to human and plain workspace output only when present", () => {
+    const base = { ...workspace, isDefault: false };
+    const selected = { ...base, profiles: [{ name: "a", credentialRefs: workspace.credentialRefs }] };
+    expect(formatWorkspace(selected, "human")).toContain("Profiles: a");
+    expect(formatWorkspaceList([selected], "human")).toContain("profiles: a");
+    expect(formatWorkspace(selected, "plain")).toBe(`${formatWorkspace(base, "plain")}\ta`);
+    expect(formatWorkspace(base, "human")).not.toContain("Profiles:");
   });
 });

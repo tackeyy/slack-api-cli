@@ -1,3 +1,4 @@
+import { validateWorkspaceProfile } from "../lib/local-session-files.js";
 import {
   CredentialResolver,
   SlamyClient,
@@ -23,12 +24,13 @@ export type CliApiClientLease<Client = SlamyClient> = {
 
 export type CreateCliApiClientOptions<Client = SlamyClient> = {
   explicitWorkspace?: string;
+  profile?: string;
   env?: NodeJS.ProcessEnv;
   registry?: WorkspaceRegistry;
   credentialResolver?: CredentialResolver;
   clientFactory?: (tokens: SlamyClientOptions) => Client;
   localSessionLookup?: (
-    workspace: WorkspaceRecord,
+    workspace: WorkspaceRecord & { profile?: string },
   ) => Promise<LocalSessionConnection | undefined>;
 };
 
@@ -49,19 +51,32 @@ export function collectCliWorkspaceSelector(
   return selector;
 }
 
+export function collectCliProfileSelector(profile: string, previous: string | undefined): string {
+  validateWorkspaceProfile(profile);
+  if (previous !== undefined && previous !== profile) throw new Error("Conflicting --profile selectors");
+  return profile;
+}
+
 export async function createCliApiClient<Client = SlamyClient>(
   options: CreateCliApiClientOptions<Client> = {},
 ): Promise<CliApiClientLease<Client>> {
+  if (options.profile !== undefined) validateWorkspaceProfile(options.profile);
   const env = options.env ?? process.env;
   const selector = resolveCliWorkspaceSelector(options.explicitWorkspace, env);
   const clientFactory =
     options.clientFactory ??
     ((tokens: SlamyClientOptions) => new SlamyClient(tokens) as Client);
   const registry = options.registry ?? createWorkspaceRegistry({ env });
-  const workspace =
+  const resolvedWorkspace =
     selector === undefined
       ? await resolveDefaultWorkspace(registry)
       : await registry.resolve(selector);
+
+  if (options.profile !== undefined && resolvedWorkspace === undefined) {
+    throw new Error("A registered workspace is required for --profile");
+  }
+  const workspace = options.profile === undefined ? resolvedWorkspace :
+    await registry.resolve(resolvedWorkspace!.teamId, options.profile);
 
   if (workspace === undefined) {
     const userToken = env.SLACK_USER_TOKEN;

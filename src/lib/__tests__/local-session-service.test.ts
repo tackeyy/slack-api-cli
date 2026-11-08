@@ -1,3 +1,6 @@
+import * as sessionFiles from "../local-session-files.js";
+import * as sessionBroker from "../local-session-broker.js";
+import type { LocalSessionConnection } from "../local-session-web-client.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -27,6 +30,61 @@ afterEach(async () => {
 });
 
 describe("local session service", () => {
+  it("keeps unnamed, user profile and bot profile sessions independent on revoke and expiry", async () => {
+    const root = await mkdtemp(join(tmpdir(), "sp-multi-"));
+    tempPaths.push(root);
+    const teamId = parseTeamId("TP" + root.slice(-6).toUpperCase());
+    const now = new Date("2029-01-01");
+    const workspaces = [
+      { ...userWorkspace, teamId },
+      { ...userWorkspace, teamId, profile: "a" },
+      { ...userWorkspace, teamId, profile: "b", credentialRefs: { bot: { provider: "environment", name: "APP_B" } } },
+    ];
+    const sessions = new Map<string, LocalSessionConnection>();
+    const read = vi.spyOn(sessionFiles, "readLocalSessionConnection").mockImplementation(async (paths, time = now) => {
+      const connection = sessions.get(paths.socketPath);
+      if (connection && Date.parse(connection.expiresAt) <= time.getTime()) {
+        sessions.delete(paths.socketPath);
+        return undefined;
+      }
+      return connection;
+    });
+    const revoke = vi.spyOn(sessionBroker, "revokeLocalSessionBroker").mockImplementation(async (connection) => {
+      sessions.delete(connection.socketPath);
+    });
+    try {
+      for (const workspace of workspaces) {
+        const bot = "bot" in workspace.credentialRefs;
+        await startLocalSession({ workspace, token: bot ? "xoxb-fixture" : "xoxp-fixture", ttlMs: 10000,
+          configHome: root, cliPath: "/fixture/cli", executablePath: "/fixture/node" }, {
+          now: () => now, capability: () => "fixture-capability-canary",
+          verify: vi.fn().mockResolvedValue({ teamId, userId: "U1", ...(bot ? { botId: "B1" } : {}) }),
+          launch: async (input) => {
+            sessions.set(input.connection.socketPath, input.connection);
+            return { pid: 1 };
+          },
+        });
+      }
+      for (const workspace of workspaces) expect(await getLocalSessionStatus(workspace, root, now)).toBeDefined();
+      expect(await revokeLocalSession(workspaces[1]!, root, now)).toBe(true);
+      expect(await getLocalSessionStatus(workspaces[1]!, root, now)).toBeUndefined();
+      expect(await getLocalSessionStatus(workspaces[0]!, root, now)).toBeDefined();
+      expect(await getLocalSessionStatus(workspaces[2]!, root, new Date(now.getTime() + 10000))).toBeUndefined();
+      expect(await getLocalSessionStatus(workspaces[0]!, root, now)).toBeDefined();
+    } finally { read.mockRestore(); revoke.mockRestore(); }
+  });
+  it("starts a named session with a distinct socket and public profile", async () => {
+    const root = await mkdtemp(join(tmpdir(), "sp-service-"));
+    tempPaths.push(root);
+    const launch = vi.fn().mockResolvedValue(undefined);
+    const result = await startLocalSession({ workspace: { ...userWorkspace, profile: "a" },
+      token: "xoxp-fixture-only", ttlMs: 1000, configHome: root, cliPath: "/fixture/cli", executablePath: "/fixture/node" }, {
+      verify: vi.fn().mockResolvedValue({ teamId: userWorkspace.teamId, userId: "U1" }), launch,
+      now: () => new Date("2029-01-01"), capability: () => "fixture-capability-canary" });
+    expect(result).toMatchObject({ profile: "a" });
+    expect(launch).toHaveBeenCalledWith(expect.objectContaining({ profile: "a", connection: expect.objectContaining({
+      socketPath: expect.stringContaining("-user-a.sock") }) }));
+  });
   it("rejects a token from another Team ID before launching a daemon and redacts errors", async () => {
     const root = await mkdtemp(join(tmpdir(), "slamy-session-service-"));
     tempPaths.push(root);
@@ -239,13 +297,13 @@ describe("local session service", () => {
     })).rejects.toThrow("does not match");
   });
 
-  it("starts the broker in the current process for supervisor-managed sessions", async () => {
+  it.each([undefined, "a"])("passes profile %s to the in-process daemon for supervisor-managed sessions", async (profile) => {
     const root = await mkdtemp(join(tmpdir(), "slamy-session-foreground-"));
     tempPaths.push(root);
     const runDaemon = vi.fn().mockResolvedValue(undefined);
 
     const result = await startLocalSessionForeground({
-      workspace: userWorkspace,
+      workspace: { ...userWorkspace, ...(profile === undefined ? {} : { profile }) },
       token: "xoxp-user-secret-canary",
       ttlMs: 86_400_000,
       configHome: root,
@@ -267,6 +325,8 @@ describe("local session service", () => {
       credentialKind: "user",
       expiresAt: "2029-01-02T00:00:00.000Z",
     });
+    expect(runDaemon.mock.calls[0]?.[0].profile).toBe(profile);
+    expect(Object.hasOwn(runDaemon.mock.calls[0]?.[0], "profile")).toBe(profile !== undefined);
     expect(runDaemon).toHaveBeenCalledWith(expect.objectContaining({
       token: "xoxp-user-secret-canary",
       configHome: root,

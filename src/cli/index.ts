@@ -10,6 +10,7 @@ import { formatTimestamp as libFormatTimestamp } from "../lib/tz.js";
 import { jsonOutput as formatJson } from "../lib/cli-format.js";
 import {
   collectCliWorkspaceSelector,
+  collectCliProfileSelector,
   createCliApiClient,
 } from "./api-client.js";
 import { createCliTargetClient } from "./target-client.js";
@@ -41,6 +42,7 @@ program
       }
     },
   )
+  .option("--profile <name>", "Use a named credential profile", collectCliProfileSelector)
   .option("--json", "Output in JSON format")
   .option("--plain", "Output in TSV format")
   .option("--utc", "Display timestamps in UTC (default: local TZ)")
@@ -61,6 +63,7 @@ function getTzOptions(): { utc?: boolean; tz?: string } {
 async function createClient(): Promise<SlamyClient> {
   const lease = await createCliApiClient({
     explicitWorkspace: program.opts<{ workspace?: string }>().workspace,
+    profile: program.opts<{ profile?: string }>().profile,
   });
   lease.dispose();
   return lease.client;
@@ -79,6 +82,7 @@ async function createTargetClient(
     ...(messageTs ? { messageTs } : {}),
     ...(threadTs ? { threadTs } : {}),
     explicitWorkspace: program.opts<{ workspace?: string }>().workspace,
+    profile: program.opts<{ profile?: string }>().profile,
   });
   lease.dispose();
   return { client: lease.client, target: lease.target };
@@ -185,6 +189,14 @@ team
 const channels = program.command("channels").description("Channel operations");
 
 registerChannelManagementCommands(channels, program);
+// These separately owned command paths do not yet accept a profile. Fail closed.
+for (const command of channels.commands) {
+  command.hook("preAction", () => {
+    if (program.opts<{ profile?: string }>().profile !== undefined) {
+      throw new Error("--profile is not supported by this channel management command");
+    }
+  });
+}
 
 channels
   .command("list")
