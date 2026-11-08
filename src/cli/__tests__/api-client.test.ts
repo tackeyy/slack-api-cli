@@ -9,6 +9,7 @@ import type { WorkspaceStore } from "../../workspace/store.js";
 import type { WorkspaceRegistryDocument } from "../../workspace/types.js";
 import {
   collectCliWorkspaceSelector,
+  collectCliProfileSelector,
   createCliApiClient,
   resolveCliWorkspaceSelector,
 } from "../api-client.js";
@@ -399,5 +400,84 @@ describe("createCliApiClient — self-documenting auth error (no selector, no le
     }
     expect(thrownError).toBeDefined();
     expect(thrownError!.message.toLowerCase()).toMatch(/deprecated/);
+  });
+});
+
+describe("profile selection", () => {
+  it("rejects conflicting and invalid profile flags without including their values", () => {
+    expect(collectCliProfileSelector("a", "a")).toBe("a");
+    expect(() => collectCliProfileSelector("b", "a")).toThrow("Conflicting --profile");
+    for (const name of ["default", "A", "../a", "", "a".repeat(33), "xoxp-secret-canary"]) {
+      expect(() => collectCliProfileSelector(name, undefined)).toThrow();
+      try { collectCliProfileSelector(name, undefined); } catch (error) {
+        expect(String(error)).not.toContain(name || "empty-name-canary");
+      }
+    }
+  });
+  it("uses only the selected profile for session lookup and resolver", async () => {
+    const selectedRegistry = registry();
+    const base = await selectedRegistry.resolve("wedgeai");
+    const refs = { bot: { provider: "environment", name: "APP_B" } };
+    // Registry documents contain records, not views.
+    const record = { ...base, profiles: [{ name: "b", credentialRefs: refs }] };
+    delete (record as Partial<typeof base>).isDefault;
+    const cleanRegistry = new WorkspaceRegistry(new MemoryStore({ version: 1, defaultTeamId: WEDGE_TEAM, workspaces: [record] }));
+    const lookup = vi.fn().mockResolvedValue({ teamId: WEDGE_TEAM, credentialKind: "bot", socketPath: "/fixture/b.sock" });
+    const factory = vi.fn();
+    await createCliApiClient({ profile: "b", registry: cleanRegistry, env: {}, localSessionLookup: lookup, clientFactory: factory });
+    expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ profile: "b", credentialRefs: refs }));
+    expect(factory).toHaveBeenCalledWith({ localSession: expect.objectContaining({ credentialKind: "bot" }) });
+    const resolveForWorkspace = vi.fn().mockRejectedValue(new Error("fixture stop"));
+    await expect(createCliApiClient({ profile: "b", registry: cleanRegistry, env: {},
+      localSessionLookup: async () => undefined, credentialResolver: { resolveForWorkspace } as never,
+      clientFactory: factory })).rejects.toThrow("fixture stop");
+    expect(resolveForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ profile: "b", credentialRefs: refs }),
+      { requiredKinds: ["bot"], operation: "cli" });
+    await expect(createCliApiClient({ profile: "missing", registry: cleanRegistry, env: {}, clientFactory: factory })).rejects.toThrow();
+    await expect(createCliApiClient({ profile: "b", registry: registry(false), env: { SLACK_USER_TOKEN: "fixture" }, clientFactory: factory })).rejects.toThrow("A registered workspace is required for --profile");
+    expect(factory).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("root CLI profile wiring", () => {
+  it("rejects profiles on out-of-scope channel management paths before their action", async () => {
+    const argv = process.argv;
+    const action = vi.fn();
+    try {
+      vi.resetModules();
+      vi.doMock("../channels.js", () => ({ registerChannelManagementCommands: (channels: import("commander").Command) => {
+        channels.command("info <input>").action(action);
+      } }));
+      process.argv = ["node", "slamy", "--workspace", "wedgeai", "--profile", "a", "channels", "info", "C0123ABC"];
+      await expect(import("../index.js")).rejects.toThrow(/profile.*not supported/i);
+      expect(action).not.toHaveBeenCalled();
+    } finally { process.argv = argv; vi.doUnmock("../channels.js"); vi.resetModules(); }
+  });
+  it.each([
+    ["auth", "test"],
+    ["messages", "post", "C0123ABC", "--text", "fixture"],
+    ["assistant", "set-status", "--channel", "C0123ABC", "--thread", "1700000000.000001", "--status", "fixture"],
+  ])("passes the root profile through %j", async (...args) => {
+    const argv = process.argv;
+    const write = vi.spyOn(console, "log").mockImplementation(() => {});
+    const factory = vi.fn().mockResolvedValue({ client: {
+      authTest: vi.fn().mockResolvedValue({}),
+      postMessage: vi.fn().mockResolvedValue({}),
+      setAssistantStatus: vi.fn().mockResolvedValue(undefined),
+    }, dispose() {} });
+    try {
+      vi.resetModules();
+      vi.doMock("../api-client.js", async () => ({
+        ...await vi.importActual<typeof import("../api-client.js")>("../api-client.js"), createCliApiClient: factory,
+      }));
+      process.argv = ["node", "slamy", "--workspace", "wedgeai", "--profile", "a", "--json", ...args];
+      await import("../index.js");
+      expect(factory).toHaveBeenCalledWith({ explicitWorkspace: "wedgeai", profile: "a" });
+    } finally {
+      process.argv = argv;
+      write.mockRestore();
+      vi.doUnmock("../api-client.js");
+      vi.resetModules();
+    }
   });
 });

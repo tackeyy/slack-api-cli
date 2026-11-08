@@ -14,7 +14,7 @@ export function formatWorkspaceList(
   return safe
     .map(
       (workspace) =>
-        `${workspace.isDefault ? "*" : " "} ${workspace.alias} (${workspace.teamId}) ${workspace.domain} — ${workspace.displayName}`,
+        `${workspace.isDefault ? "*" : " "} ${workspace.alias} (${workspace.teamId}) ${workspace.domain} — ${workspace.displayName}${workspace.profiles?.length ? ` — profiles: ${workspace.profiles.map((item) => item.name).join(", ")}` : ""}`,
     )
     .join("\n");
 }
@@ -33,6 +33,7 @@ export function formatWorkspace(workspace: WorkspaceView, mode: WorkspaceOutputM
     `Previous domains: ${previous}`,
     `Default: ${safe.isDefault ? "yes" : "no"}`,
     `Credential references: ${credentials}`,
+    ...(safe.profiles?.length ? [`Profiles: ${safe.profiles.map((item) => item.name).join(", ")}`] : []),
   ].join("\n");
 }
 
@@ -52,6 +53,7 @@ function formatTsv(workspace: WorkspaceView): string {
     workspace.previousDomains.join(","),
     workspace.credentialRefs?.user?.name ?? "",
     workspace.credentialRefs?.bot?.name ?? "",
+    ...(workspace.profiles?.length ? [workspace.profiles.map((item) => item.name).join(",")] : []),
   ]
     .map(sanitizeTsv)
     .join("\t");
@@ -71,6 +73,12 @@ function formatCredentialRefs(refs: WorkspaceCredentialRefs | undefined): string
 
 function redactUnsafeCredentialRefs(workspace: WorkspaceView): WorkspaceView {
   const credentialRefs = workspace.credentialRefs;
+  if (workspace.profiles?.length) {
+    workspace = { ...workspace, profiles: workspace.profiles.map((item) => ({
+      ...item, credentialRefs: redactUnsafeCredentialRefs({ ...workspace, profiles: undefined,
+        credentialRefs: item.credentialRefs }).credentialRefs!,
+    })) };
+  }
   if (!credentialRefs) return workspace;
   return {
     ...workspace,

@@ -56,6 +56,22 @@ function registry(): WorkspaceRegistry {
 }
 
 describe("CLI permalink workspace routing", () => {
+  it.each(["C0123ABC", "https://wedgeai.slack.com/archives/C0123ABC/p1700000000000001"])(
+    "passes the profile after resolving the workspace for %s", async (input) => {
+      const base = await registry().resolve("wedgeai");
+      const { isDefault: _isDefault, ...record } = base;
+      const selected = new WorkspaceRegistry(new MemoryStore({ version: 1, defaultTeamId: WEDGE_TEAM,
+        workspaces: [{ ...record, profiles: [{ name: "a", credentialRefs: record.credentialRefs! }] }] }));
+      const clientLeaseFactory = vi.fn().mockResolvedValue({ client: {}, dispose() {} });
+      await createCliTargetClient({ input, profile: "a", env: {}, registry: selected, clientLeaseFactory });
+      expect(clientLeaseFactory).toHaveBeenCalledWith("wedgeai", selected, "a");
+    });
+  it("rejects an absent profile before creating a permalink client", async () => {
+    const clientLeaseFactory = vi.fn();
+    await expect(createCliTargetClient({ input: "https://ma-navi.slack.com/archives/C0123ABC/p1700000000000001",
+      profile: "b", env: {}, registry: registry(), clientLeaseFactory })).rejects.toThrow(/profile/);
+    expect(clientLeaseFactory).not.toHaveBeenCalled();
+  });
   it.each([
     {
       explicitWorkspace: "wedgeai",

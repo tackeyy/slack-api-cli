@@ -164,6 +164,41 @@ backwards compatibility but is **deprecated**. Use the workspace registry and
 export SLACK_USER_TOKEN=xoxp-your-user-token
 ```
 
+### Optional: named authentication profiles
+
+Keep multiple apps on the same workspace without replacing its unnamed credentials:
+
+```bash
+slamy workspace profile add myworkspace app-a --user-token-env APP_A_USER_TOKEN
+slamy workspace profile add myworkspace app-b --bot-token-env APP_B_BOT_TOKEN
+slamy workspace profile list myworkspace
+# Pipe the app-a token from your password manager into this command:
+slamy --workspace myworkspace --profile app-a auth session start
+slamy --workspace myworkspace --profile app-a auth session status
+slamy --workspace myworkspace --profile app-b auth test
+slamy --workspace myworkspace --profile app-a auth session revoke
+slamy workspace profile remove myworkspace app-a
+```
+
+Supply session tokens through stdin from your password manager, as above; never put token
+values in arguments. Profile registration stores environment variable names only. Removing a
+profile changes the registry only; revoke its session before removal if you want it stopped.
+
+`--profile <name>` selects credentials after workspace selection: `--workspace`, then
+`SLAMY_DEFAULT_WORKSPACE`, then the registry default. A permalink selects its registered workspace
+when no explicit or environment selector is present. A registered workspace and an existing profile
+are required; missing selections fail without using unnamed credentials or legacy tokens.
+Channel management commands (`channels info/create/invite/invite-shared/kick/rename`) currently
+reject `--profile` rather than using unnamed credentials.
+There is no profile environment variable. Names must match `^[a-z0-9]+(?:-[a-z0-9]+)*$`,
+be 1–32 characters, and differ from the reserved name `default`. Conflicting repeated flags fail.
+
+Profiles replace the complete credential reference set; they do not merge with unnamed credentials.
+Their sessions live at `sessions/<teamId>/profiles/<profile>/<kind>/`, with sockets named
+`<teamId>-<kind>-<profile>.sock` in the runtime directory. Start, status, revoke, and expiry affect
+only the selected profile. Public session output includes `profile` only when selected;
+TSV output appends it as the last column. Omitting `--profile` retains the existing paths and output.
+
 ### Optional: session TTL and foreground mode
 
 The default session TTL is 24 hours. To extend or keep the broker in the foreground:
