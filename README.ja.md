@@ -45,9 +45,8 @@ component/data-flow図、import規則、公開API互換方針、Go削除gateは
 ### TypeScript API / CLI（ソースから実行）
 
 コマンド名は`slack-api-cli`です。`slamy`も別名として使えます。この文書の例は`slack-api-cli`で書いています。
-この名前が追加される前に`npm link`を実行した場合は、もう一度`npm link`を実行して`slack-api-cli`をPATHに追加してください。
 
-slamy は npm へ公開していません。リポジトリを clone し、CLI をソースから実行します（Node.js 25 以上）。
+slamyはnpmへ公開していません。リポジトリをcloneし、CLIをソースから実行します（Node.js 25以上）。
 
 ```bash
 git clone https://github.com/tackeyy/slack-api-cli.git
@@ -55,6 +54,16 @@ cd slack-api-cli
 npm install
 npx tsx src/cli/index.ts --help
 ```
+
+`slack-api-cli`と`slamy`をPATHに追加するには、次を実行します。
+
+```bash
+npm run build
+npm link
+```
+
+`package.json`の`bin`は`dist/cli/index.js`を指すため、ビルド後にlinkします。
+`slack-api-cli`の追加前にlinkしていた場合も、この手順で既存のlinkを更新できます。
 
 ### Homebrew
 

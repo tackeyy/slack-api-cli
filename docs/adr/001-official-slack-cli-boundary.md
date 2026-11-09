@@ -60,6 +60,8 @@ store that slamy should adopt as its own.
 
 The repository and executable retain the name `slamy`.
 
+Note: On 2026-11-08, the `slack-api-cli` command was added and `slamy` was retained as an alias ([#170](https://github.com/tackeyy/slack-api-cli/pull/170)).
+
 ## Feature acceptance test
 
 A proposed slamy feature must pass all of the following checks:

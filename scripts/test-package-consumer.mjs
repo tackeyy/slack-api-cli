@@ -122,7 +122,9 @@ void slackAdapter.apiCall("users.list", {});
       process.stderr.write("Package-root declarations expose a Slack SDK or generic API surface\n");
       process.exitCode = 1;
     }
-    process.stdout.write("Package-root consumer compile: OK\n");
+    if (process.exitCode === undefined) {
+      process.stdout.write("Package-root consumer compile: OK\n");
+    }
   }
 } finally {
   rmSync(fixture, { recursive: true, force: true });
