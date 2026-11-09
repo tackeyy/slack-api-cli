@@ -15,7 +15,7 @@ active, although it cannot retrieve the reusable Slack token through the broker 
 
 ## Data flow
 
-1. A password manager writes one Slack token to `slamy auth session start` through standard input.
+1. A password manager writes one Slack token to `slack-api-cli auth session start` through standard input.
 2. slamy verifies token kind and canonical Slack Team ID with `auth.test`.
 3. The launcher passes the credential once to a detached child through an anonymous standard-input
    pipe. The token is absent from child arguments and its allowlisted environment.
@@ -60,10 +60,10 @@ remain unchanged.
 
 ```bash
 op read 'op://<vault>/<item>/<field>' |
-  slamy --workspace wedgeai auth session start --ttl 7d
+  slack-api-cli --workspace wedgeai auth session start --ttl 7d
 
-slamy --workspace wedgeai auth session status
-slamy --workspace wedgeai auth session revoke
+slack-api-cli --workspace wedgeai auth session status
+slack-api-cli --workspace wedgeai auth session revoke
 ```
 
 Use 24 hours unless a longer unattended window is necessary. Revoke the local session when the
