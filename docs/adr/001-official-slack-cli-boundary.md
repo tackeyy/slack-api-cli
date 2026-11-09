@@ -60,7 +60,7 @@ store that slamy should adopt as its own.
 
 The repository and executable retain the name `slamy`.
 
-Note: On 2026-11-08, the `slack-api-cli` command was added and `slamy` was retained as an alias ([#170](https://github.com/tackeyy/slack-api-cli/pull/170)).
+Note: On 2026-11-08, the `slack-api-cli` command was added and `slamy` was retained as an alias ([#170](https://github.com/tackeyy/slack-api-cli/pull/170)). On the same day, the GitHub repository was renamed to `tackeyy/slack-api-cli` ([#169](https://github.com/tackeyy/slack-api-cli/issues/169)).
 
 ## Feature acceptance test
 

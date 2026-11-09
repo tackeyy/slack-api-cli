@@ -1,5 +1,5 @@
 name: ❓ Question
-description: Ask a question about using Zoomy
+description: Ask a question about using slack-api-cli
 labels: ["question"]
 body:
   - type: markdown
@@ -11,7 +11,7 @@ body:
     id: question
     attributes:
       label: Your question
-      description: What would you like to know about Zoomy?
+      description: What would you like to know about slack-api-cli?
       placeholder: |
         How do I configure multiple Zoom accounts?
         What timezone formats are supported?

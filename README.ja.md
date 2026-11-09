@@ -26,7 +26,7 @@ create/link/install/uninstall、Manifest、ローカル実行、デプロイ、a
 workspace resolverとcredential検証経路を使用し、安定した出力を提供します。Slack URLを受け取る
 コマンドではpermalink由来のtargetも解決します。
 
-slamy は公式 CLI を子プロセスとして呼び出さず、その非公開 credential ファイルも読みません。
+slamyは公式 CLI を子プロセスとして呼び出さず、その非公開 credential ファイルも読みません。
 公開 Slack API を直接利用するため、両ツールは独立して併用できます。責務分担表、機能追加の
 判断基準、将来の廃止基準は [ADR 001](docs/adr/001-official-slack-cli-boundary.md) を参照してください。
 
@@ -194,7 +194,7 @@ Slack App は 2 種類のトークンを発行できます。用途に応じて�
 
 ### User Token を使うケース: ユーザーの代理として動作する場合
 
-slamy は、特定のユーザーに代わって Slack の閲覧・検索・投稿を行うアプリケーションをサポートします。このユースケースでは、User Token が自然な選択です:
+slamyは、特定のユーザーに代わって Slack の閲覧・検索・投稿を行うアプリケーションをサポートします。このユースケースでは、User Token が自然な選択です:
 
 1. **検索に必須** — `search:read` は User Token 専用のスコープ。Bot Token ではメッセージ検索ができない
 2. **トークン 1 つで完結** — 2 つのトークンを管理して操作ごとに使い分ける必要がない
