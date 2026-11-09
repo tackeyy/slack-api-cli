@@ -7,6 +7,17 @@ const root = resolve(import.meta.dirname, "..");
 const fixture = mkdtempSync(join(tmpdir(), "slamy-package-consumer-"));
 
 try {
+  const helpResult = spawnSync(process.execPath, ["dist/cli/index.js", "--help"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if (helpResult.status !== 0 || !helpResult.stdout.includes("Usage: slack-api-cli")) {
+    process.stderr.write(helpResult.stdout ?? "");
+    process.stderr.write(helpResult.stderr ?? "");
+    process.stderr.write("CLI help must succeed and show Usage: slack-api-cli\n");
+    process.exitCode = helpResult.status || 1;
+  }
+
   const nodeModules = join(fixture, "node_modules");
   mkdirSync(nodeModules);
   symlinkSync(root, join(nodeModules, "slamy"), "dir");

@@ -76,8 +76,8 @@ to slamy. Record the boundary review in the feature issue or pull request.
 
 ```bash
 # 1. Fork and clone
-git clone https://github.com/YOUR_USERNAME/slamy.git
-cd slamy
+git clone https://github.com/YOUR_USERNAME/slack-api-cli.git
+cd slack-api-cli
 
 # 2. Install dependencies (also runs `npm run build` via the `prepare` script)
 npm install

@@ -7,8 +7,8 @@ A Slack API client and standalone CLI for reading, searching, and posting to Sla
 ## Channel sharing metadata
 
 ```sh
-slamy --workspace example --json channels info C012AB3CD
-slamy --json channels info https://example.slack.com/archives/C012AB3CD/p1700000000000001
+slack-api-cli --workspace example --json channels info C012AB3CD
+slack-api-cli --json channels info https://example.slack.com/archives/C012AB3CD/p1700000000000001
 ```
 
 Uses the shared workspace/permalink resolver and returns only channel identity, privacy/sharing
@@ -62,7 +62,8 @@ diagrams, import rules, public API compatibility policy, and Go removal gates.
 
 ### TypeScript API and CLI (from source)
 
-The command is `slack-api-cli`. `slamy` remains available as an alias, and the examples in this document use it.
+The command is `slack-api-cli`. `slamy` remains available as an alias, and the examples in this document use `slack-api-cli`.
+If you ran `npm link` before this name was added, run `npm link` again to put `slack-api-cli` on your PATH.
 
 slamy is not published to npm. Clone the repository and run the CLI from source
 (Node.js 25 or later):
@@ -131,12 +132,12 @@ In **OAuth & Permissions** > **Scopes** > **User Token Scopes**, add:
 Install the app to your workspace, then register it with slamy:
 
 ```bash
-slamy workspace add --team-id T01234567 --alias myworkspace \
+slack-api-cli workspace add --team-id T01234567 --alias myworkspace \
   --domain myworkspace.slack.com --name "My Workspace" \
   --user-token-env SLACK_USER_TOKEN
 ```
 
-See `slamy workspace --help` for all options.
+See `slack-api-cli workspace --help` for all options.
 
 ### 4. Start an authentication session
 
@@ -144,7 +145,7 @@ Pipe your token from a password manager to start an in-memory local session:
 
 ```bash
 op read 'op://<vault>/<item>/<field>' |
-  slamy --workspace myworkspace auth session start
+  slack-api-cli --workspace myworkspace auth session start
 ```
 
 Tokens are not accepted as command arguments.
@@ -152,7 +153,7 @@ Tokens are not accepted as command arguments.
 ### 5. Run
 
 ```bash
-slamy channels list
+slack-api-cli channels list
 ```
 
 ### Legacy: environment variable authentication (deprecated)
@@ -171,15 +172,15 @@ export SLACK_USER_TOKEN=xoxp-your-user-token
 Keep multiple apps on the same workspace without replacing its unnamed credentials:
 
 ```bash
-slamy workspace profile add myworkspace app-a --user-token-env APP_A_USER_TOKEN
-slamy workspace profile add myworkspace app-b --bot-token-env APP_B_BOT_TOKEN
-slamy workspace profile list myworkspace
+slack-api-cli workspace profile add myworkspace app-a --user-token-env APP_A_USER_TOKEN
+slack-api-cli workspace profile add myworkspace app-b --bot-token-env APP_B_BOT_TOKEN
+slack-api-cli workspace profile list myworkspace
 # Pipe the app-a token from your password manager into this command:
-slamy --workspace myworkspace --profile app-a auth session start
-slamy --workspace myworkspace --profile app-a auth session status
-slamy --workspace myworkspace --profile app-b auth test
-slamy --workspace myworkspace --profile app-a auth session revoke
-slamy workspace profile remove myworkspace app-a
+slack-api-cli --workspace myworkspace --profile app-a auth session start
+slack-api-cli --workspace myworkspace --profile app-a auth session status
+slack-api-cli --workspace myworkspace --profile app-b auth test
+slack-api-cli --workspace myworkspace --profile app-a auth session revoke
+slack-api-cli workspace profile remove myworkspace app-a
 ```
 
 Supply session tokens through stdin from your password manager, as above; never put token
@@ -208,14 +209,14 @@ The default session TTL is 24 hours. To extend or keep the broker in the foregro
 ```bash
 # Seven days is the explicit maximum.
 op read 'op://<vault>/<item>/<field>' |
-  slamy --workspace wedgeai auth session start --ttl 7d
+  slack-api-cli --workspace wedgeai auth session start --ttl 7d
 
 # Keep the broker attached to the current process (Terminal, launchd, etc.).
 op read 'op://<vault>/<item>/<field>' |
-  slamy --workspace wedgeai auth session start --ttl 7d --foreground
+  slack-api-cli --workspace wedgeai auth session start --ttl 7d --foreground
 
-slamy --workspace wedgeai auth session status
-slamy --workspace wedgeai auth session revoke
+slack-api-cli --workspace wedgeai auth session status
+slack-api-cli --workspace wedgeai auth session revoke
 ```
 
 The detached broker keeps the Slack token in memory, verifies the canonical Team ID, and exposes
@@ -261,7 +262,7 @@ Bot Token is the right choice if you are building a Slack bot (not a personal as
 ### `channels list` — List channels
 
 ```bash
-slamy channels list [--limit <number>] [--include-archived] [--json] [--plain]
+slack-api-cli channels list [--limit <number>] [--include-archived] [--json] [--plain]
 ```
 
 | Flag | Required | Description |
@@ -274,7 +275,7 @@ slamy channels list [--limit <number>] [--include-archived] [--json] [--plain]
 ### `channels create` — Create or reconcile a channel
 
 ```bash
-slamy channels create 01-engineering \
+slack-api-cli channels create 01-engineering \
   --workspace wedgeai \
   --topic "AI development" \
   --purpose "Discuss AI and software engineering decisions." \
@@ -313,14 +314,14 @@ TypeScript CLI:
 The TypeScript CLI also provides offline workspace registry management:
 
 ```bash
-slamy workspace list
-slamy workspace add --team-id T01234567 --alias primary \
+slack-api-cli workspace list
+slack-api-cli workspace add --team-id T01234567 --alias primary \
   --domain primary.slack.com --name "Primary" \
   --user-token-env SLAMY_WORKSPACE_PRIMARY_USER_TOKEN --default
-slamy workspace show primary
-slamy workspace default primary
-slamy workspace default --clear
-slamy workspace remove primary
+slack-api-cli workspace show primary
+slack-api-cli workspace default primary
+slack-api-cli workspace default --clear
+slack-api-cli workspace remove primary
 ```
 
 Setting a registry default makes that workspace the selection when neither `--workspace` nor
@@ -335,7 +336,7 @@ operations.
 ### `channels history` — Get channel message history
 
 ```bash
-slamy channels history <channel_or_url> [--limit <n>] [--oldest <ts>] [--latest <ts>] [--resolve-names]
+slack-api-cli channels history <channel_or_url> [--limit <n>] [--oldest <ts>] [--latest <ts>] [--resolve-names]
 ```
 
 | Flag | Required | Description |
@@ -349,7 +350,7 @@ slamy channels history <channel_or_url> [--limit <n>] [--oldest <ts>] [--latest 
 ### `messages post` — Post a message
 
 ```bash
-slamy messages post <channel_id> --text <message> [--as-user] [--thread-ts <ts>]
+slack-api-cli messages post <channel_id> --text <message> [--as-user] [--thread-ts <ts>]
 ```
 
 `--thread-ts <ts>` posts as a reply in that thread (format `1700000000.000100`; invalid values are rejected before calling Slack).
@@ -357,7 +358,7 @@ slamy messages post <channel_id> --text <message> [--as-user] [--thread-ts <ts>]
 ### `messages reply` — Reply to a thread
 
 ```bash
-slamy messages reply <channel_or_url> [thread_ts] --text <message> [--broadcast]
+slack-api-cli messages reply <channel_or_url> [thread_ts] --text <message> [--broadcast]
 ```
 
 `<channel_or_url>` accepts either a channel ID + thread_ts, or a single Slack permalink URL.
@@ -365,14 +366,14 @@ slamy messages reply <channel_or_url> [thread_ts] --text <message> [--broadcast]
 ### `messages update` / `messages delete` — Edit messages
 
 ```bash
-slamy messages update <channel_or_url> [ts] --text <new_text>
-slamy messages delete <channel_or_url> [ts]
+slack-api-cli messages update <channel_or_url> [ts] --text <new_text>
+slack-api-cli messages delete <channel_or_url> [ts]
 ```
 
 ### `messages schedule` — Schedule a message for later
 
 ```bash
-slamy messages schedule <channel_id> --text <message> --at <datetime>
+slack-api-cli messages schedule <channel_id> --text <message> --at <datetime>
 ```
 
 `<datetime>` is a Unix timestamp or ISO 8601 (e.g. `2026-02-24T09:00+09:00`).
@@ -380,7 +381,7 @@ slamy messages schedule <channel_id> --text <message> --at <datetime>
 ### `threads replies` — Get thread replies
 
 ```bash
-slamy threads replies <channel_or_url> [thread_ts] [--limit <n>] [--resolve-names]
+slack-api-cli threads replies <channel_or_url> [thread_ts] [--limit <n>] [--resolve-names]
 ```
 
 `<channel_or_url>` accepts a channel ID + thread_ts, or a single Slack permalink URL.
@@ -388,7 +389,7 @@ slamy threads replies <channel_or_url> [thread_ts] [--limit <n>] [--resolve-name
 ### `channels members` — List channel members
 
 ```bash
-slamy channels members <channel_or_url> [--resolve-names]
+slack-api-cli channels members <channel_or_url> [--resolve-names]
 ```
 
 `<channel_or_url>` accepts a channel ID or a Slack permalink URL. `--resolve-names` resolves `user_id` to display names.
@@ -396,10 +397,10 @@ slamy channels members <channel_or_url> [--resolve-names]
 ### `users list` / `users profile` / `users set-real-name` / `users set-display-name`
 
 ```bash
-slamy users list [--include-deactivated] [--include-bots]
-slamy users profile <user_id>
-slamy users set-real-name <user_id> <real_name>
-slamy users set-display-name <user_id> <display_name>
+slack-api-cli users list [--include-deactivated] [--include-bots]
+slack-api-cli users profile <user_id>
+slack-api-cli users set-real-name <user_id> <real_name>
+slack-api-cli users set-display-name <user_id> <display_name>
 ```
 
 `set-real-name` calls `users.profile.set`. It needs a user token (an admin's token on a paid plan to target another user or a bot) and is rejected with a bot token only or in a local session. The real name is limited to 50 characters.
@@ -409,7 +410,7 @@ slamy users set-display-name <user_id> <display_name>
 ### `assistant set-status` — Set AI Assistant thread status
 
 ```bash
-slamy assistant set-status --channel <id> --thread <ts> --status <text> [--loading-message <text...>]
+slack-api-cli assistant set-status --channel <id> --thread <ts> --status <text> [--loading-message <text...>]
 ```
 
 Sets the typing indicator status on an AI Assistant thread. Use `--plain` for machine-readable TSV output (`ok\t<channel>\t<thread>`), suitable for CI / shell scripting.
@@ -417,7 +418,7 @@ Sets the typing indicator status on an AI Assistant thread. Use `--plain` for ma
 ### `reactions get` — Get reactions on a specific message
 
 ```bash
-slamy reactions get <channel_or_url> [timestamp] [--resolve-names]
+slack-api-cli reactions get <channel_or_url> [timestamp] [--resolve-names]
 ```
 
 Returns the emoji reactions and the users who added them. Useful before calling `reactions add` to check existing reactions.
@@ -425,7 +426,7 @@ Returns the emoji reactions and the users who added them. Useful before calling 
 ### `reactions list` — List reactions made by a user
 
 ```bash
-slamy reactions list [--user <user_id>] [--limit <n>] [--count] [--resolve-names]
+slack-api-cli reactions list [--user <user_id>] [--limit <n>] [--count] [--resolve-names]
 ```
 
 `--resolve-names` resolves `channel_id` to channel names (`#general` instead of `#C0123ABCDE`).
@@ -435,14 +436,14 @@ Note: `reactions list` (lists reactions *by* a user) and `reactions get` (gets r
 ### `reactions add` / `reactions remove` — Add/remove emoji reaction
 
 ```bash
-slamy reactions add <channel_or_url> [timestamp] --name <emoji>
-slamy reactions remove <channel_or_url> [timestamp] --name <emoji>
+slack-api-cli reactions add <channel_or_url> [timestamp] --name <emoji>
+slack-api-cli reactions remove <channel_or_url> [timestamp] --name <emoji>
 ```
 
 ### `search messages` — Search messages
 
 ```bash
-slamy search messages <query> [--count <n>] [--page <n>] [--sort <field>] [--sort-dir <dir>] [--resolve-names]
+slack-api-cli search messages <query> [--count <n>] [--page <n>] [--sort <field>] [--sort-dir <dir>] [--resolve-names]
 ```
 
 | Flag | Required | Description |
@@ -459,10 +460,10 @@ slamy search messages <query> [--count <n>] [--page <n>] [--sort <field>] [--sor
 Slack accepts a channel **name** (`in:general`, `in:#general`) or a channel **mention** (`in:<#C0123456789>`) for the `in:` modifier. A bare channel ID is **not** a valid filter:
 
 ```bash
-slamy search messages 'in:general'            # OK
-slamy search messages 'in:#general'           # OK
-slamy search messages 'in:<#C0123456789>'     # OK — a channel ID works in mention form
-slamy search messages 'in:C0123456789'        # returns 0 matches, without an error
+slack-api-cli search messages 'in:general'            # OK
+slack-api-cli search messages 'in:#general'           # OK
+slack-api-cli search messages 'in:<#C0123456789>'     # OK — a channel ID works in mention form
+slack-api-cli search messages 'in:C0123456789'        # returns 0 matches, without an error
 ```
 
 Prefer the mention form when you only have a channel ID: it filters correctly and needs no name lookup. The bare-ID form fails silently, which is easy to misread as "this channel has no matching messages".
@@ -470,13 +471,13 @@ Prefer the mention form when you only have a channel ID: it filters correctly an
 ### `auth test` — Test authentication
 
 ```bash
-slamy auth test [--json] [--plain]
+slack-api-cli auth test [--json] [--plain]
 ```
 
 ### `team info` — Get workspace info
 
 ```bash
-slamy team info [--json] [--plain]
+slack-api-cli team info [--json] [--plain]
 ```
 
 Returns the workspace domain, `email_domain`, and Enterprise info. The `email_domain` is useful for diagnosing SSO domain mismatches. Requires the `team:read` scope. Note: SSO enforcement settings are **not** exposed by the Slack API.
@@ -591,18 +592,18 @@ For every TypeScript CLI command that calls Slack, the workspace selection order
 
 1. The root flag `--workspace <selector>`, accepting a registry alias, Team ID, or fully-qualified current/previous Slack domain
 2. `SLAMY_DEFAULT_WORKSPACE`
-3. The registry default set by `slamy workspace default <selector>`
+3. The registry default set by `slack-api-cli workspace default <selector>`
 4. Legacy `SLACK_USER_TOKEN` / `SLACK_BOT_TOKEN`, only when neither selector source nor a registry default is set
 
 There is no `SLAMY_WORKSPACE` selector environment variable; use `--workspace` for an explicit selection.
 
 ```bash
 # Uses the default alias, primary
-slamy channels list
+slack-api-cli channels list
 
 # Explicit selection takes precedence over the default
-slamy --workspace operations channels list
-slamy --workspace project-a auth test
+slack-api-cli --workspace operations channels list
+slack-api-cli --workspace project-a auth test
 ```
 
 Registry selection is fail-closed. slamy resolves only the selected workspace's configured

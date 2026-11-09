@@ -13,7 +13,7 @@ body:
       label: Describe the bug
       description: A clear and concise description of what the bug is
       placeholder: |
-        When I run `slamy create --start 2026-02-20T10:00:00 --duration 60`, I get an error...
+        When I run `slack-api-cli messages post C0123456789 --text "hello"`, I get an error...
     validations:
       required: true
 
@@ -23,7 +23,7 @@ body:
       label: Steps to reproduce
       description: Steps to reproduce the behavior
       placeholder: |
-        1. Run `slamy create --start 2026-02-20T10:00:00 --duration 60`
+        1. Run `slack-api-cli messages post C0123456789 --text "hello"`
         2. Observe error message
         3. ...
     validations:
@@ -52,7 +52,7 @@ body:
     id: version
     attributes:
       label: Zoomy version
-      description: Run `slamy --version` or `npm list slamy`
+      description: Run `slack-api-cli --version` or `npm list slamy`
       placeholder: "1.0.0"
     validations:
       required: true

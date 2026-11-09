@@ -44,7 +44,8 @@ component/data-flow図、import規則、公開API互換方針、Go削除gateは
 
 ### TypeScript API / CLI（ソースから実行）
 
-コマンド名は`slack-api-cli`です。`slamy`も別名として使えます。この文書の例は`slamy`で書いています。
+コマンド名は`slack-api-cli`です。`slamy`も別名として使えます。この文書の例は`slack-api-cli`で書いています。
+この名前が追加される前に`npm link`を実行した場合は、もう一度`npm link`を実行して`slack-api-cli`をPATHに追加してください。
 
 slamy は npm へ公開していません。リポジトリを clone し、CLI をソースから実行します（Node.js 25 以上）。
 
@@ -112,12 +113,12 @@ go build -o ../slamy .
 ワークスペースにアプリをインストールし、slamy に workspace を登録する:
 
 ```bash
-slamy workspace add --team-id T01234567 --alias myworkspace \
+slack-api-cli workspace add --team-id T01234567 --alias myworkspace \
   --domain myworkspace.slack.com --name "My Workspace" \
   --user-token-env SLACK_USER_TOKEN
 ```
 
-オプションの詳細は `slamy workspace --help` を参照してください。
+オプションの詳細は `slack-api-cli workspace --help` を参照してください。
 
 ### 4. 認証セッションの開始
 
@@ -125,7 +126,7 @@ slamy workspace add --team-id T01234567 --alias myworkspace \
 
 ```bash
 op read 'op://<vault>/<item>/<field>' |
-  slamy --workspace myworkspace auth session start
+  slack-api-cli --workspace myworkspace auth session start
 ```
 
 トークンをコマンドライン引数として渡すことはできません。
@@ -133,7 +134,7 @@ op read 'op://<vault>/<item>/<field>' |
 ### 5. 実行
 
 ```bash
-slamy channels list
+slack-api-cli channels list
 ```
 
 ### レガシー: 環境変数による認証（非推奨）
@@ -152,14 +153,14 @@ export SLACK_USER_TOKEN=xoxp-your-user-token
 ```bash
 # 7日間が明示指定できる上限値
 op read 'op://<vault>/<item>/<field>' |
-  slamy --workspace wedgeai auth session start --ttl 7d
+  slack-api-cli --workspace wedgeai auth session start --ttl 7d
 
 # Terminal、launchd等のsupervisor自身にbrokerを保持させる場合
 op read 'op://<vault>/<item>/<field>' |
-  slamy --workspace wedgeai auth session start --ttl 7d --foreground
+  slack-api-cli --workspace wedgeai auth session start --ttl 7d --foreground
 
-slamy --workspace wedgeai auth session status
-slamy --workspace wedgeai auth session revoke
+slack-api-cli --workspace wedgeai auth session status
+slack-api-cli --workspace wedgeai auth session revoke
 ```
 
 バックグラウンドのbrokerはSlackトークンをメモリ内に保持し、canonical Team IDを検証して、
@@ -205,7 +206,7 @@ Slack bot（パーソナルアシスタントではなく）を作る場合は B
 ### `channels list` — チャンネル一覧
 
 ```bash
-slamy channels list [--limit <number>] [--include-archived] [--json] [--plain]
+slack-api-cli channels list [--limit <number>] [--include-archived] [--json] [--plain]
 ```
 
 | フラグ | 必須 | 説明 |
@@ -218,7 +219,7 @@ slamy channels list [--limit <number>] [--include-archived] [--json] [--plain]
 ### `channels create` — チャンネル作成・整合
 
 ```bash
-slamy channels create 01-engineering \
+slack-api-cli channels create 01-engineering \
   --workspace wedgeai \
   --topic "AI・ソフトウェア開発" \
   --purpose "AI・ソフトウェア開発と技術判断を共有します。" \
@@ -256,14 +257,14 @@ TypeScript CLI:
 TypeScript CLIでは、Slack APIを呼ばないworkspace registry管理も利用できます。
 
 ```bash
-slamy workspace list
-slamy workspace add --team-id T01234567 --alias primary \
+slack-api-cli workspace list
+slack-api-cli workspace add --team-id T01234567 --alias primary \
   --domain primary.slack.com --name "Primary" \
   --user-token-env SLAMY_WORKSPACE_PRIMARY_USER_TOKEN --default
-slamy workspace show primary
-slamy workspace default primary
-slamy workspace default --clear
-slamy workspace remove primary
+slack-api-cli workspace show primary
+slack-api-cli workspace default primary
+slack-api-cli workspace default --clear
+slack-api-cli workspace remove primary
 ```
 
 これらのコマンドはSlackへ接続せず、token値を引数として受け取りません。Slack APIを呼ぶすべての
@@ -274,7 +275,7 @@ credentialを`auth.test`で検証します。TypeScript libraryでは、atomic c
 ### `channels history` — チャンネルのメッセージ履歴
 
 ```bash
-slamy channels history <channel_or_url> [--limit <n>] [--oldest <ts>] [--latest <ts>] [--resolve-names]
+slack-api-cli channels history <channel_or_url> [--limit <n>] [--oldest <ts>] [--latest <ts>] [--resolve-names]
 ```
 
 | フラグ | 必須 | 説明 |
@@ -288,7 +289,7 @@ slamy channels history <channel_or_url> [--limit <n>] [--oldest <ts>] [--latest 
 ### `messages post` — メッセージ投稿
 
 ```bash
-slamy messages post <channel_id> --text <message> [--as-user] [--thread-ts <ts>]
+slack-api-cli messages post <channel_id> --text <message> [--as-user] [--thread-ts <ts>]
 ```
 
 `--thread-ts <ts>` を指定すると、そのスレッドへの返信として投稿します（形式は `1700000000.000100`。不正な値は Slack を呼ばずにエラー）。
@@ -296,7 +297,7 @@ slamy messages post <channel_id> --text <message> [--as-user] [--thread-ts <ts>]
 ### `messages reply` — スレッド返信
 
 ```bash
-slamy messages reply <channel_or_url> [thread_ts] --text <message> [--broadcast]
+slack-api-cli messages reply <channel_or_url> [thread_ts] --text <message> [--broadcast]
 ```
 
 `<channel_or_url>` は「channel ID + thread_ts」または Slack permalink URL の 1 引数のいずれも受け付けます。
@@ -304,14 +305,14 @@ slamy messages reply <channel_or_url> [thread_ts] --text <message> [--broadcast]
 ### `messages update` / `messages delete` — メッセージ編集
 
 ```bash
-slamy messages update <channel_or_url> [ts] --text <new_text>
-slamy messages delete <channel_or_url> [ts]
+slack-api-cli messages update <channel_or_url> [ts] --text <new_text>
+slack-api-cli messages delete <channel_or_url> [ts]
 ```
 
 ### `messages schedule` — 予約投稿
 
 ```bash
-slamy messages schedule <channel_id> --text <message> --at <datetime>
+slack-api-cli messages schedule <channel_id> --text <message> --at <datetime>
 ```
 
 `<datetime>` は Unix timestamp または ISO 8601 形式（例: `2026-02-24T09:00+09:00`）。
@@ -319,7 +320,7 @@ slamy messages schedule <channel_id> --text <message> --at <datetime>
 ### `threads replies` — スレッド返信を取得
 
 ```bash
-slamy threads replies <channel_or_url> [thread_ts] [--limit <n>] [--resolve-names]
+slack-api-cli threads replies <channel_or_url> [thread_ts] [--limit <n>] [--resolve-names]
 ```
 
 `<channel_or_url>` は「channel ID + thread_ts」または Slack permalink URL の 1 引数のいずれも受け付けます。
@@ -327,7 +328,7 @@ slamy threads replies <channel_or_url> [thread_ts] [--limit <n>] [--resolve-name
 ### `channels members` — チャンネルメンバー一覧
 
 ```bash
-slamy channels members <channel_or_url> [--resolve-names]
+slack-api-cli channels members <channel_or_url> [--resolve-names]
 ```
 
 `<channel_or_url>` は channel ID または Slack permalink URL を受け付けます。`--resolve-names` で `user_id` を実名表示。
@@ -335,10 +336,10 @@ slamy channels members <channel_or_url> [--resolve-names]
 ### `users list` / `users profile` / `users set-real-name` / `users set-display-name`
 
 ```bash
-slamy users list [--include-deactivated] [--include-bots]
-slamy users profile <user_id>
-slamy users set-real-name <user_id> <real_name>
-slamy users set-display-name <user_id> <display_name>
+slack-api-cli users list [--include-deactivated] [--include-bots]
+slack-api-cli users profile <user_id>
+slack-api-cli users set-real-name <user_id> <real_name>
+slack-api-cli users set-display-name <user_id> <display_name>
 ```
 
 `set-display-name` も `users.profile.set` を呼びます: user token が必要で、bot token だけの構成と local session では拒否されます。表示名は 80 文字までです。
@@ -346,7 +347,7 @@ slamy users set-display-name <user_id> <display_name>
 ### `assistant set-status` — AI Assistant スレッドのステータス設定
 
 ```bash
-slamy assistant set-status --channel <id> --thread <ts> --status <text> [--loading-message <text...>]
+slack-api-cli assistant set-status --channel <id> --thread <ts> --status <text> [--loading-message <text...>]
 ```
 
 AI Assistant スレッドの typing indicator を設定します。CI/シェルスクリプト用には `--plain` で機械可読 TSV (`ok\t<channel>\t<thread>`) が利用できます。
@@ -354,7 +355,7 @@ AI Assistant スレッドの typing indicator を設定します。CI/シェル�
 ### `reactions get` — 特定メッセージの reactions を取得
 
 ```bash
-slamy reactions get <channel_or_url> [timestamp] [--resolve-names]
+slack-api-cli reactions get <channel_or_url> [timestamp] [--resolve-names]
 ```
 
 絵文字ごとの reaction 数と reaction したユーザーを返します。`reactions add` 前に既存リアクションを確認するのに便利です。
@@ -362,7 +363,7 @@ slamy reactions get <channel_or_url> [timestamp] [--resolve-names]
 ### `reactions list` — ユーザーの reaction 履歴
 
 ```bash
-slamy reactions list [--user <user_id>] [--limit <n>] [--count] [--resolve-names]
+slack-api-cli reactions list [--user <user_id>] [--limit <n>] [--count] [--resolve-names]
 ```
 
 `--resolve-names` は `channel_id` を channel 名に解決します (`#C0123ABCDE` ではなく `#general`)。
@@ -372,14 +373,14 @@ slamy reactions list [--user <user_id>] [--limit <n>] [--count] [--resolve-names
 ### `reactions add` / `reactions remove` — リアクション追加/削除
 
 ```bash
-slamy reactions add <channel_or_url> [timestamp] --name <emoji>
-slamy reactions remove <channel_or_url> [timestamp] --name <emoji>
+slack-api-cli reactions add <channel_or_url> [timestamp] --name <emoji>
+slack-api-cli reactions remove <channel_or_url> [timestamp] --name <emoji>
 ```
 
 ### `search messages` — メッセージ検索
 
 ```bash
-slamy search messages <query> [--count <n>] [--page <n>] [--sort <field>] [--sort-dir <dir>] [--resolve-names]
+slack-api-cli search messages <query> [--count <n>] [--page <n>] [--sort <field>] [--sort-dir <dir>] [--resolve-names]
 ```
 
 | フラグ | 必須 | 説明 |
@@ -394,13 +395,13 @@ slamy search messages <query> [--count <n>] [--page <n>] [--sort <field>] [--sor
 ### `auth test` — 認証テスト
 
 ```bash
-slamy auth test [--json] [--plain]
+slack-api-cli auth test [--json] [--plain]
 ```
 
 ### `team info` — ワークスペース情報の取得
 
 ```bash
-slamy team info [--json] [--plain]
+slack-api-cli team info [--json] [--plain]
 ```
 
 ワークスペースのドメイン・`email_domain`・Enterprise 情報を返す。`email_domain` は SSO のドメイン不一致の診断に役立つ。`team:read` スコープが必要。なお、SSO の必須化設定は Slack API では取得**できない**。
@@ -513,11 +514,11 @@ Slack APIを呼ぶすべてのTypeScript CLIコマンドでは、接続先を次
 
 ```bash
 # デフォルトエイリアス primary を使用
-slamy channels list
+slack-api-cli channels list
 
 # 明示指定はデフォルトより優先
-slamy --workspace operations channels list
-slamy --workspace project-a auth test
+slack-api-cli --workspace operations channels list
+slack-api-cli --workspace project-a auth test
 ```
 
 registry選択はfail-closedです。選択したworkspaceに設定されたcredential referenceだけを解決し、

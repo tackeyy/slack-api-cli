@@ -147,6 +147,7 @@ describe("buildAuthGuidanceMessage", () => {
     expect(msg).toContain("wedgeai");
     expect(msg).toContain("manavi");
     expect(msg).toContain("auth session start");
+    expect(msg).toContain("slack-api-cli --workspace wedgeai auth session start");
   });
 
   it("legacy env 有無を有無のみで表示し値は出さない", () => {
