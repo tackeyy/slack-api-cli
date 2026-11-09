@@ -34,13 +34,13 @@
   },
   "dependencies": {
     "@slack/bolt": "^5.1.0",
-    "@slack/web-api": "^8.0.0",
+    "@slack/web-api": "^8.3.0",
     "commander": "^15.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.5.1",
+    "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^4.1.11",
-    "markdownlint-cli2": "^0.23.2",
+    "markdownlint-cli2": "^0.24.0",
     "typescript": "^7.0.2",
     "vitest": "^4.1.8"
   },
