@@ -39,7 +39,7 @@ export type ChannelManagementCommandDependencies = {
     }) => void,
   ) => ReturnType<typeof inviteSharedWorkspaceChannel>;
   renameChannel?: (request: RenameWorkspaceChannelRequest) => ReturnType<typeof renameWorkspaceChannel>;
-  readChannelInfo?: (input: string, workspace?: string) => Promise<ChannelSharingInfo>;
+  readChannelInfo?: (input: string, workspace?: string, profile?: string) => Promise<ChannelSharingInfo>;
   writeOut: (line: string) => void;
   writeErr: (line: string) => void;
   env?: NodeJS.ProcessEnv;
@@ -87,11 +87,12 @@ export function registerChannelManagementCommands(
         const workspace = resolveCliWorkspaceSelector(
           program.opts<{ workspace?: string }>().workspace, dependencies.env ?? process.env,
         );
-        const info = await (dependencies.readChannelInfo ?? readChannelSharingInfo)(input, workspace);
+        const profile = program.opts<{ profile?: string }>().profile;
+        const info = await (dependencies.readChannelInfo ?? readChannelSharingInfo)(input, workspace, profile);
         const mode = outputMode(program);
         if (mode === "json") dependencies.writeOut(sharingJson(info, 2));
         else {
-          const keys = ["id", "name", "is_private", "is_shared", "is_ext_shared", "is_org_shared", "shared_team_ids", "connected_team_ids", "context_team_id", "conversation_host_id"] as const;
+          const keys = ["id", "name", "is_private", "is_shared", "is_ext_shared", "is_pending_ext_shared", "is_im", "is_org_shared", "shared_team_ids", "connected_team_ids", "context_team_id", "conversation_host_id"] as const;
           const values = keys.map((key) => sharingJson(info[key] ?? "unknown"));
           dependencies.writeOut(mode === "plain" ? values.join("\t") : keys.map((key, i) => `${key}: ${values[i]}`).join("\n"));
         }
@@ -330,8 +331,8 @@ function outputMode(program: Command): "human" | "json" | "plain" {
   return "human";
 }
 
-async function readChannelSharingInfo(input: string, explicitWorkspace?: string): Promise<ChannelSharingInfo> {
-  const lease = await createCliTargetClient<{ getChannelSharingInfo(id: string): Promise<ChannelSharingInfo> }>({ input, explicitWorkspace });
+async function readChannelSharingInfo(input: string, explicitWorkspace?: string, profile?: string): Promise<ChannelSharingInfo> {
+  const lease = await createCliTargetClient<{ getChannelSharingInfo(id: string): Promise<ChannelSharingInfo> }>({ input, explicitWorkspace, profile });
   try { return await lease.client.getChannelSharingInfo(lease.target.channel); }
   finally { lease.dispose(); }
 }
