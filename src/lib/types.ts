@@ -227,6 +227,8 @@ export interface ChannelSharingInfo {
   is_private?: boolean;
   is_shared?: boolean;
   is_ext_shared?: boolean;
+  is_pending_ext_shared?: boolean;
+  is_im?: boolean;
   is_org_shared?: boolean;
   shared_team_ids?: string[];
   connected_team_ids?: string[];

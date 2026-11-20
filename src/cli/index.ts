@@ -189,8 +189,9 @@ team
 const channels = program.command("channels").description("Channel operations");
 
 registerChannelManagementCommands(channels, program);
-// These separately owned command paths do not yet accept a profile. Fail closed.
+// Only the read-only info path accepts a profile in channel management.
 for (const command of channels.commands) {
+  if (command.name() === "info") continue;
   command.hook("preAction", () => {
     if (program.opts<{ profile?: string }>().profile !== undefined) {
       throw new Error("--profile is not supported by this channel management command");

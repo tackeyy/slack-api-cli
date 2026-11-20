@@ -440,7 +440,20 @@ describe("profile selection", () => {
 });
 
 describe("root CLI profile wiring", () => {
-  it("rejects profiles on out-of-scope channel management paths before their action", async () => {
+  it.each(["create", "invite", "kick", "rename", "invite-shared"])("rejects profiles on %s before its action", async (command) => {
+    const argv = process.argv;
+    const action = vi.fn();
+    try {
+      vi.resetModules();
+      vi.doMock("../channels.js", () => ({ registerChannelManagementCommands: (channels: import("commander").Command) => {
+        channels.command(`${command} <input>`).action(action);
+      } }));
+      process.argv = ["node", "slamy", "--workspace", "example", "--profile", "x", "channels", command, "C0TEST"];
+      await expect(import("../index.js")).rejects.toThrow(/profile.*not supported/i);
+      expect(action).not.toHaveBeenCalled();
+    } finally { process.argv = argv; vi.doUnmock("../channels.js"); vi.resetModules(); }
+  });
+  it("allows profiles on read-only channel info", async () => {
     const argv = process.argv;
     const action = vi.fn();
     try {
@@ -448,9 +461,9 @@ describe("root CLI profile wiring", () => {
       vi.doMock("../channels.js", () => ({ registerChannelManagementCommands: (channels: import("commander").Command) => {
         channels.command("info <input>").action(action);
       } }));
-      process.argv = ["node", "slamy", "--workspace", "wedgeai", "--profile", "a", "channels", "info", "C0123ABC"];
-      await expect(import("../index.js")).rejects.toThrow(/profile.*not supported/i);
-      expect(action).not.toHaveBeenCalled();
+      process.argv = ["node", "slamy", "channels", "info", "D0TEST", "--profile", "x"];
+      await import("../index.js");
+      expect(action).toHaveBeenCalledTimes(1);
     } finally { process.argv = argv; vi.doUnmock("../channels.js"); vi.resetModules(); }
   });
   it.each([

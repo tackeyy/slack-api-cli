@@ -706,7 +706,7 @@ export class SlamyClient {
 
   /** Return only channel-sharing metadata; never message, topic or purpose content. */
   async getChannelSharingInfo(channelId: string): Promise<ChannelSharingInfo> {
-    if (channelId.length > 64 || !/^[CG][A-Z0-9]+$/.test(channelId)) throw new Error("Invalid channel ID");
+    if (channelId.length > 64 || !/^[CGD][A-Z0-9]+$/.test(channelId)) throw new Error("Invalid channel ID");
     const res = await this.userClient.conversations.info({ channel: channelId });
     const value: unknown = res.channel;
     const invalid = (): never => { throw new Error("Invalid channel metadata"); };
@@ -718,7 +718,7 @@ export class SlamyClient {
       if (typeof ch.name !== "string" || ch.name.length > 1024) invalid();
       result.name = ch.name as string;
     }
-    for (const key of ["is_private", "is_shared", "is_ext_shared", "is_org_shared"] as const) {
+    for (const key of ["is_private", "is_shared", "is_ext_shared", "is_pending_ext_shared", "is_im", "is_org_shared"] as const) {
       if (ch[key] === undefined) continue;
       if (typeof ch[key] !== "boolean") invalid();
       result[key] = ch[key] as boolean;
